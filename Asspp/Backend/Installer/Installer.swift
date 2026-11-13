@@ -6,6 +6,7 @@
 //
 
 import ApplePackage
+import Foundation
 import Logging
 #if canImport(UIKit)
     import UIKit
@@ -18,6 +19,8 @@ class Installer: Identifiable, @unchecked Sendable {
     @ObservationIgnored let app: Application
     @ObservationIgnored let archive: AppStore.AppPackage
     @ObservationIgnored let port = Int.random(in: 4000 ... 8000)
+    @ObservationIgnored private let shutdownLock = NSLock()
+    @ObservationIgnored private var shuttingDown = false
 
     enum Status {
         case ready
@@ -33,7 +36,13 @@ class Installer: Identifiable, @unchecked Sendable {
     init(archive: AppStore.AppPackage, path packagePath: URL) async throws {
         let id: UUID = .init()
         self.id = id
-        self.archive = archive
+        let metadata = try StorePackageValidator.importedPackage(at: packagePath)
+        guard metadata.software.bundleID == archive.software.bundleID else { throw InstallationError.invalidIPA }
+        var installationArchive = archive
+        // OTA metadata needs CFBundleVersion from the IPA, not the App Store's
+        // marketing version. This also rejects a mismatched/non-iOS package.
+        installationArchive.software.version = metadata.software.version
+        self.archive = installationArchive
         app = try await Self.setupApp(port: port, secured: true)
         logger.info("Installer app setup completed for ID: \(id)")
 
@@ -148,13 +157,18 @@ class Installer: Identifiable, @unchecked Sendable {
     }
 
     func destroy() {
-        guard !app.didShutdown else { return }
+        let shouldShutdown = shutdownLock.withLock {
+            guard !shuttingDown, !app.didShutdown else { return false }
+            shuttingDown = true
+            return true
+        }
+        guard shouldShutdown else { return }
         logger.info("destroying installer id: \(id)")
+        let application = app
         Task.detached {
-            await self.app.server.shutdown()
-            try await self.app.asyncShutdown()
-            withExtendedLifetime(self) { _ in }
-            withExtendedLifetime(self.app) { _ in }
+            await application.server.shutdown()
+            do { try await application.asyncShutdown() }
+            catch { logger.error("Local installer shutdown failed: \(StoreDiagnostics.errorSummary(error))") }
         }
     }
 }

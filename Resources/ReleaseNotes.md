@@ -1,8 +1,11 @@
 ## Changes
 
+Apple's authentication route can return an empty or HTML edge response before credentials are checked. The old native authenticator treated these as final errors. OTA installation also opened its link without first checking root-CA trust, while the certificate download URL could still be a startup placeholder. The fixes below address those paths while retaining normal TLS validation.
+
 - Retry transient Apple authentication responses up to eight times, rotating the bag, legacy, and native endpoints with fresh SAP signatures. Honor bounded Retry-After delays and preserve real credential errors and 2FA challenges.
 - Preserve storefront and pod routing during account renewal. Keep sensitive Apple messages, cookies, tokens, and redirect URLs out of authentication logs.
 - Fix OTA installation links so only the HTTPS manifest URL carries the local server port.
+- Use the IPA's actual build version in install manifests and remove stale Xcode target version overrides so release metadata follows `Version.xcconfig`.
 - Serve an actual CA configuration profile with the correct MIME type, wait for the certificate server to start, and check system certificate trust and local HTTPS connectivity before opening an install link. Installation servers now bind only to loopback.
 - Add a separate Import IPA page. Import XML/binary-plist iOS IPAs without an Apple account, install on this iPhone/iPad or a connected device on macOS, and delete files manually. Imported IPAs remain unchanged, expire after 24 hours, and are removed on restart. Storage is capped at 8 GiB.
 - Remove the scheduled upstream signed-build workflow and the unused third-party signing-tool setup. Remaining workflows build, check, and publish unsigned packages without personal signing metadata.

@@ -2,6 +2,7 @@
 """Reject personal build metadata and signing assets before publishing Asspp."""
 
 import plistlib
+import os
 import re
 import subprocess
 import sys
@@ -34,6 +35,12 @@ def check(archive):
         app = apps[0]
         info = app / "Contents/Info.plist" if (app / "Contents").exists() else app / "Info.plist"
         metadata = plistlib.loads(info.read_bytes())
+        version_config = Path(__file__).resolve().parents[2] / "Configuration/Version.xcconfig"
+        version = re.search(r"^MARKETING_VERSION\s*=\s*(\S+)", version_config.read_text(), re.MULTILINE).group(1)
+        if metadata.get("CFBundleShortVersionString") != version:
+            raise ValueError("application version does not match Version.xcconfig")
+        if os.environ.get("GITHUB_REF_TYPE") == "tag" and os.environ.get("GITHUB_REF_NAME") != version:
+            raise ValueError("release tag does not match the application version")
         if any(key in metadata for key in ("TeamIdentifier", "ApplicationIdentifierPrefix", "DeveloperName")):
             raise ValueError("application metadata contains a developer identity")
 

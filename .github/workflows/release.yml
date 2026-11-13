@@ -3,34 +3,62 @@ on:
   push:
     tags: ['4.*']
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  release:
+  build:
     runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ios, macos]
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Select stable Xcode
         run: bash Resources/Scripts/select.xcode.sh
-      - name: Check protocols and certificates
+      - name: Build and verify unsigned package
+        env:
+          PLATFORM: ${{ matrix.platform }}
         run: |
-          bash Resources/Scripts/check.downloads.sh
-          bash Resources/Scripts/check.authentication-installer.sh
-      - name: Build unsigned iOS package
-        run: zsh Resources/Scripts/compile.release.mobile.ci.sh "$PWD" "$RUNNER_TEMP/Asspp.ipa"
-      - name: Build unsigned macOS package
-        run: zsh Resources/Scripts/compile.release.osx.sh "$PWD" "$RUNNER_TEMP/Asspp.zip"
-      - name: Check release privacy
-        run: python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.ipa" "$RUNNER_TEMP/Asspp.zip"
-      - name: Publish unsigned release
+          set -euo pipefail
+          if [ "$PLATFORM" = ios ]; then
+            bash Resources/Scripts/check.downloads.sh
+            bash Resources/Scripts/check.authentication-installer.sh
+            zsh Resources/Scripts/compile.release.mobile.ci.sh "$PWD" "$RUNNER_TEMP/Asspp.ipa"
+            python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.ipa"
+          else
+            zsh Resources/Scripts/compile.release.osx.sh "$PWD" "$RUNNER_TEMP/Asspp.zip"
+            python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.zip"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Asspp-${{ matrix.platform }}-unsigned-release
+          path: |
+            ${{ runner.temp }}/Asspp.ipa
+            ${{ runner.temp }}/Asspp.zip
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Asspp-*-unsigned-release
+          merge-multiple: true
+          path: release
+      - name: Publish verified unsigned release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
           gh release create "$GITHUB_REF_NAME" \
-            "$RUNNER_TEMP/Asspp.ipa" "$RUNNER_TEMP/Asspp.zip" \
+            release/Asspp.ipa release/Asspp.zip --verify-tag \
             --title "$GITHUB_REF_NAME" --notes-file Resources/ReleaseNotes.md
