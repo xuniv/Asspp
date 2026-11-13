@@ -1,14 +1,10 @@
 import ApplePackage
+import AsyncHTTPClient
 import Foundation
 
-/// SAP signs every POST. Foundation keeps normal system TLS verification enabled;
+/// SAP signs every POST. The client keeps normal TLS verification enabled;
 /// redirects are explicit so credentials cannot follow an unapproved destination.
 actor StoreAuthenticator {
-    private final class NoRedirect: NSObject, URLSessionTaskDelegate {
-        func urlSession(_: URLSession, task _: URLSessionTask, willPerformHTTPRedirection _: HTTPURLResponse,
-                        newRequest _: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
-    }
-
     private let signer: SAPSigner
     private let guid: String
     private let endpoints: [URL]
@@ -33,15 +29,13 @@ actor StoreAuthenticator {
         guard !busy else { throw StoreAuthenticationError.busy }
         busy = true
         defer { busy = false }
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.httpCookieStorage = nil
-        configuration.httpShouldSetCookies = false
-        configuration.urlCredentialStorage = nil
-        configuration.urlCache = nil
-        configuration.timeoutIntervalForRequest = 30
-        configuration.timeoutIntervalForResource = 60
-        let session = URLSession(configuration: configuration, delegate: NoRedirect(), delegateQueue: nil)
-        defer { session.invalidateAndCancel() }
+        var configuration = HTTPClient.Configuration(redirectConfiguration: .disallow,
+                                                     timeout: .init(connect: .seconds(15), read: .seconds(30)))
+        // Keep the HTTP/1.1 transport used by ApplePackage and ipatool. Do not
+        // inherit ApplePackage's development TLS settings or system cookie jars.
+        configuration.httpVersion = .http1Only
+        let client = HTTPClient(eventLoopGroupProvider: .singleton, configuration: configuration)
+        defer { _ = client.shutdown() }
         var statuses: [Int] = []
         var redirects = 0
         var credentialRetry = false
@@ -54,18 +48,14 @@ actor StoreAuthenticator {
         while true {
             try Task.checkCancellation()
             endpoint = try StoreAuthenticationProtocol.approved(endpoint)
-            var request = URLRequest(url: endpoint)
-            request.httpMethod = "POST"
-            request.httpBody = body
-            request.setValue(Configuration.userAgent, forHTTPHeaderField: "User-Agent")
-            request.setValue("application/x-apple-plist", forHTTPHeaderField: "Content-Type")
-            request.setValue(try await signer.sign(body).base64EncodedString(), forHTTPHeaderField: "X-Apple-ActionSignature")
-            for (name, value) in cookies.buildCookieHeader(endpoint) { request.setValue(value, forHTTPHeaderField: name) }
-            let data: Data
-            let response: URLResponse
+            let signature = try await signer.sign(body)
+            let headers = [("User-Agent", Configuration.userAgent), ("Content-Type", "application/x-apple-plist"),
+                           ("X-Apple-ActionSignature", signature.base64EncodedString())] + cookies.buildCookieHeader(endpoint)
+            let request = try HTTPClient.Request(url: endpoint.absoluteString, method: .POST, headers: .init(headers), body: .data(body))
+            let response: HTTPClient.Response
             do {
-                (data, response) = try await session.data(for: request)
-            } catch let error as URLError where [.timedOut, .networkConnectionLost].contains(error.code) {
+                response = try await client.execute(request: request).get()
+            } catch let error as HTTPClientError where [HTTPClientError.connectTimeout, .readTimeout, .remoteConnectionClosed].contains(error) {
                 statuses.append(0)
                 guard statuses.count < StoreAuthenticationProtocol.attempts else { throw StoreAuthenticationError.exhausted(statuses) }
                 rotation = (rotation + 1) % endpoints.count
@@ -73,23 +63,25 @@ actor StoreAuthenticator {
                 try await Task.sleep(for: .seconds(2))
                 continue
             }
-            guard let response = response as? HTTPURLResponse, data.count <= 2 * 1024 * 1024 else { throw StoreAuthenticationError.invalidResponse }
-            mergeCookies(response)
-            if let value = response.value(forHTTPHeaderField: "x-set-apple-store-front")?.split(separator: "-").first { store = String(value) }
-            if let value = response.value(forHTTPHeaderField: "pod"), !value.isEmpty { pod = value }
+            guard (response.body?.readableBytes ?? 0) <= 2 * 1024 * 1024 else { throw StoreAuthenticationError.invalidResponse }
+            let data = response.body.map { Data($0.readableBytesView) } ?? Data()
+            let status = Int(response.status.code)
+            mergeCookies(response.headers.map { ($0.name, $0.value) }, url: endpoint)
+            if let value = response.headers.first(name: "x-set-apple-store-front")?.split(separator: "-").first { store = String(value) }
+            if let value = response.headers.first(name: "pod"), !value.isEmpty { pod = value }
             let dictionary = StoreProtocol.plist(data)
-            if StoreAuthenticationProtocol.isTransient(status: response.statusCode, dictionary: dictionary) {
-                statuses.append(response.statusCode)
-                logger.warning("Sign-in transient response HTTP=\(response.statusCode) attempt=\(statuses.count)")
+            if StoreAuthenticationProtocol.isTransient(status: status, dictionary: dictionary) {
+                statuses.append(status)
+                logger.warning("Sign-in transient response HTTP=\(status) attempt=\(statuses.count)")
                 guard statuses.count < StoreAuthenticationProtocol.attempts else { throw StoreAuthenticationError.exhausted(statuses) }
-                let delay = try StoreAuthenticationProtocol.retryDelay(response.value(forHTTPHeaderField: "Retry-After"))
+                let delay = try StoreAuthenticationProtocol.retryDelay(response.headers.first(name: "Retry-After"))
                 rotation = (rotation + 1) % endpoints.count
                 endpoint = endpoints[rotation]
                 try await Task.sleep(for: .seconds(delay))
                 continue
             }
-            if [301, 302, 303, 307, 308].contains(response.statusCode) {
-                guard redirects < 3, let location = response.value(forHTTPHeaderField: "Location"),
+            if [301, 302, 303, 307, 308].contains(status) {
+                guard redirects < 3, let location = response.headers.first(name: "Location"),
                       let destination = URL(string: location, relativeTo: endpoint)?.absoluteURL else { throw StoreAuthenticationError.invalidEndpoint }
                 endpoint = try StoreAuthenticationProtocol.approved(destination, guid: guid)
                 redirects += 1
@@ -105,7 +97,7 @@ actor StoreAuthenticator {
                 credentialRetry = true
                 continue
             }
-            guard response.statusCode == 200, failure.isEmpty,
+            guard status == 200, failure.isEmpty,
                   let info = dictionary["accountInfo"] as? [String: Any], let address = info["address"] as? [String: Any]
             else { throw StoreAuthenticationError.rejected(message ?? String(localized: "Apple rejected sign-in.")) }
             return try Account(email: email, password: password, appleId: info["appleId"] as? String, store: store,
@@ -115,18 +107,16 @@ actor StoreAuthenticator {
         }
     }
 
-    private func mergeCookies(_ response: HTTPURLResponse) {
-        guard let url = response.url else { return }
-        let headers = response.allHeaderFields.reduce(into: [String: String]()) { result, field in
-            if let name = field.key as? String, let value = field.value as? String { result[name] = value }
-        }
-        for cookie in HTTPCookie.cookies(withResponseHeaderFields: headers, for: url) {
-            let domain = StoreProtocol.storeCookieDomain(cookie.domain)
-            guard let domain, domain == "itunes.apple.com" || domain.hasSuffix(".itunes.apple.com") else { continue }
-            cookies.removeAll { $0.name == cookie.name && $0.path == cookie.path && StoreProtocol.storeCookieDomain($0.domain) == domain }
-            if let expiry = cookie.expiresDate, expiry <= Date() { continue }
-            cookies.append(Cookie(name: cookie.name, value: cookie.value, path: cookie.path, domain: domain,
-                                  expiresAt: cookie.expiresDate?.timeIntervalSince1970, httpOnly: cookie.isHTTPOnly, secure: cookie.isSecure))
+    private func mergeCookies(_ headers: [(String, String)], url: URL) {
+        for (name, value) in headers where name.lowercased() == "set-cookie" {
+            for cookie in HTTPCookie.cookies(withResponseHeaderFields: ["Set-Cookie": value], for: url) {
+                let domain = StoreProtocol.storeCookieDomain(cookie.domain)
+                guard let domain, domain == "itunes.apple.com" || domain.hasSuffix(".itunes.apple.com") else { continue }
+                cookies.removeAll { $0.name == cookie.name && $0.path == cookie.path && StoreProtocol.storeCookieDomain($0.domain) == domain }
+                if let expiry = cookie.expiresDate, expiry <= Date() { continue }
+                cookies.append(Cookie(name: cookie.name, value: cookie.value, path: cookie.path, domain: domain,
+                                      expiresAt: cookie.expiresDate?.timeIntervalSince1970, httpOnly: cookie.isHTTPOnly, secure: cookie.isSecure))
+            }
         }
     }
 }

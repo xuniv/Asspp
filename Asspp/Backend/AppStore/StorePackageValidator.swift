@@ -13,15 +13,10 @@ enum StorePackageValidator {
 
     static func importedPackage(at url: URL) throws -> AppStore.AppPackage {
         let info = try readInfo(at: url)
-        guard let bundleID = info["CFBundleIdentifier"] as? String, !bundleID.isEmpty,
-              bundleID.range(of: #"^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*$"#, options: .regularExpression) != nil,
-              let version = (info["CFBundleVersion"] ?? info["CFBundleShortVersionString"]) as? String, !version.isEmpty
-        else { throw InstallationError.invalidIPA }
-        try StoreDownloadProtocol.validatePackageInfo(info, bundleID: bundleID, platform: "iPhoneOS")
+        let metadata = try InstallationProtocol.importedMetadata(info)
         return .init(software: .init(
-            id: 0, bundleID: bundleID,
-            name: (info["CFBundleDisplayName"] ?? info["CFBundleName"]) as? String ?? bundleID,
-            version: version, artistName: "", sellerName: "", description: "",
+            id: 0, bundleID: metadata.bundleID, name: metadata.name,
+            version: metadata.build, artistName: "", sellerName: "", description: "",
             averageUserRating: 0, userRatingCount: 0, artworkUrl: "", screenshotUrls: [],
             minimumOsVersion: info["MinimumOSVersion"] as? String ?? "", releaseDate: "",
             formattedPrice: "", primaryGenreName: "",

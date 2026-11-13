@@ -18,6 +18,26 @@ enum InstallationProtocol {
     static let hostname = "app.localhost.qaq.wiki"
     static let profilePath = "/Asspp-Local-Installation.mobileconfig"
 
+    struct ImportedMetadata {
+        let bundleID: String
+        let name: String
+        let build: String
+    }
+
+    static func importedMetadata(_ info: [String: Any]) throws -> ImportedMetadata {
+        func text(_ key: String, limit: Int = 255) -> String? {
+            guard let value = info[key] as? String, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  value.count <= limit, value.rangeOfCharacter(from: .controlCharacters) == nil else { return nil }
+            return value
+        }
+        guard let bundleID = text("CFBundleIdentifier"),
+              bundleID.range(of: #"^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*$"#, options: .regularExpression) != nil,
+              let build = text("CFBundleVersion", limit: 128) ?? text("CFBundleShortVersionString", limit: 128),
+              (info["CFBundleSupportedPlatforms"] as? [String] ?? []).contains("iPhoneOS") || (info["DTPlatformName"] as? String)?.lowercased() == "iphoneos"
+        else { throw InstallationError.invalidIPA }
+        return ImportedMetadata(bundleID: bundleID, name: text("CFBundleDisplayName") ?? text("CFBundleName") ?? bundleID, build: build)
+    }
+
     static func endpoint(port: Int, path: String) -> URL {
         var parts = URLComponents()
         parts.scheme = "https"

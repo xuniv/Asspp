@@ -54,6 +54,24 @@ struct AuthenticationInstallerChecks {
         precondition(!String(data: profile, encoding: .utf8)!.contains("PRIVATE KEY"))
         do { _ = try InstallationProtocol.certificateDER(pem: Data("invalid".utf8)); fatalError("Accepted invalid certificate data") }
         catch InstallationError.certificateUnavailable {}
+        let info: [String: Any] = ["CFBundleIdentifier": "example.app", "CFBundleVersion": "42", "CFBundleShortVersionString": "1.2", "CFBundleDisplayName": "Test & Install", "CFBundleSupportedPlatforms": ["iPhoneOS"]]
+        for format in [PropertyListSerialization.PropertyListFormat.xml, .binary] {
+            let data = try PropertyListSerialization.data(fromPropertyList: info, format: format, options: 0)
+            let decoded = try PropertyListSerialization.propertyList(from: data, format: nil) as! [String: Any]
+            let metadata = try InstallationProtocol.importedMetadata(decoded)
+            precondition(metadata.bundleID == "example.app" && metadata.build == "42" && metadata.name == "Test & Install")
+        }
+        for field in ["CFBundleIdentifier", "CFBundleVersion", "CFBundleSupportedPlatforms"] {
+            var malformed = info
+            malformed.removeValue(forKey: field)
+            if field == "CFBundleVersion" { malformed.removeValue(forKey: "CFBundleShortVersionString") }
+            do { _ = try InstallationProtocol.importedMetadata(malformed); fatalError("Accepted invalid IPA metadata") }
+            catch InstallationError.invalidIPA {}
+        }
+        var otherPlatform = info
+        otherPlatform["CFBundleSupportedPlatforms"] = ["AppleTVOS"]
+        do { _ = try InstallationProtocol.importedMetadata(otherPlatform); fatalError("Accepted a tvOS IPA") }
+        catch InstallationError.invalidIPA {}
         print("Authentication endpoint, retry, credential-error, install URL, and CA profile checks passed.")
     }
 }
