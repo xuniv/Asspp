@@ -109,7 +109,11 @@ struct ProductView: View {
     private func acquireLicense() async throws {
         guard let account else { return }
         try await vm.withAccount(id: account.id) { userAccount in
-            try await ApplePackage.Authenticator.rotatePasswordToken(for: &userAccount.account)
+            if !userAccount.account.password.isEmpty {
+                let previous = userAccount.account
+                let session = try await StoreAuthenticator(cookies: previous.cookie, previous: previous)
+                userAccount.account = try await session.authenticate(email: previous.email, password: previous.password)
+            }
             try await ApplePackage.Purchase.purchase(
                 account: &userAccount.account,
                 app: archive.package.software,

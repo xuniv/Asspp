@@ -88,3 +88,9 @@ MIT License. See [LICENSE](./LICENSE) for details.
 Copyright © 2025 Lakr Aream. All Rights Reserved.
 
 <img src="./Artworks/fable5.jpg" alt="Fable 5 Verified" width="240">
+
+## Fork fixes: authentication, certificates, and IPA import
+
+See [4.2.3 release notes](Resources/ReleaseNotes.md) for the authentication retry strategy, temporary **Import IPA** page, and iOS CA setup. In particular, installing the CA profile and enabling **full trust** are separate iOS steps. Asspp checks system trust before launching OTA installation and never disables TLS verification.
+
+The fork keeps only build, protocol/installer checks, and unsigned release workflows. Unsigned artifacts contain no personal signing team or provisioning profile. The bundled local TLS leaf key is required for the on-device HTTPS server; no CA private key is included.

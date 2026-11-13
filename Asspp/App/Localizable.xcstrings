@@ -4,23 +4,6 @@
     "" : {
       "shouldTranslate" : false
     },
-    "@Lakr233" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "@Lakr233"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "@Lakr233"
-          }
-        }
-      }
-    },
     "%@" : {
       "localizations" : {
         "en" : {
@@ -50,6 +33,17 @@
       },
       "shouldTranslate" : false
     },
+    "%@ (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$lld)"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
     "%@ - %@" : {
       "localizations" : {
         "en" : {
@@ -65,17 +59,6 @@
           }
         }
       }
-    },
-    "%@ (%lld)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ (%2$lld)"
-          }
-        }
-      },
-      "shouldTranslate" : false
     },
     "%@+" : {
       "comment" : "A label displaying the minimum operating system version required to install a software package. The argument is the minimum OS version as a string.",
@@ -100,6 +83,22 @@
     },
     "%lld" : {
       "shouldTranslate" : false
+    },
+    "%lld Results" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Results"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个结果"
+          }
+        }
+      }
     },
     "%lld apps installed by Asspp" : {
       "comment" : "A footer label at the bottom of the list of installed apps, showing the number of apps installed. The argument is the number of installed apps.",
@@ -127,22 +126,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Asspp 已安装 %lld 个应用"
-          }
-        }
-      }
-    },
-    "%lld Results" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Results"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个结果"
           }
         }
       }
@@ -207,6 +190,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "88888888888"
+          }
+        }
+      }
+    },
+    "@Lakr233" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@Lakr233"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@Lakr233"
           }
         }
       }
@@ -340,22 +340,6 @@
         }
       }
     },
-    "Add an Apple ID to start downloading IPA packages." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add an Apple ID to start downloading IPA packages."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加 Apple ID 以开始下载 IPA 软件包。"
-          }
-        }
-      }
-    },
     "Add Download" : {
       "localizations" : {
         "en" : {
@@ -368,6 +352,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加下载"
+          }
+        }
+      }
+    },
+    "Add an Apple ID to start downloading IPA packages." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add an Apple ID to start downloading IPA packages."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加 Apple ID 以开始下载 IPA 软件包。"
           }
         }
       }
@@ -468,6 +468,54 @@
         }
       }
     },
+    "Apple asked to delay sign-in. Try again later." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple asked to delay sign-in. Try again later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple 要求推迟登录，请稍后重试。"
+          }
+        }
+      }
+    },
+    "Apple did not complete sign-in after eight attempts. Try again later." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple did not complete sign-in after eight attempts. Try again later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尝试八次后 Apple 仍未完成登录，请稍后重试。"
+          }
+        }
+      }
+    },
+    "Apple rejected sign-in." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple rejected sign-in."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple 拒绝了登录。"
+          }
+        }
+      }
+    },
     "Apple rejected the download (code: %@)." : {
       "localizations" : {
         "en" : {
@@ -500,6 +548,22 @@
         }
       }
     },
+    "Apple returned an invalid authentication response." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple returned an invalid authentication response."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple 返回了无效的认证响应。"
+          }
+        }
+      }
+    },
     "Apple returned an invalid download redirect." : {
       "localizations" : {
         "en" : {
@@ -512,6 +576,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apple 返回了无效的下载重定向地址。"
+          }
+        }
+      }
+    },
+    "Apple returned an unapproved authentication endpoint." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple returned an unapproved authentication endpoint."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple 返回了未获批准的认证地址。"
           }
         }
       }
@@ -614,6 +694,22 @@
         }
       }
     },
+    "Authentication is already in progress." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentication is already in progress."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在进行认证。"
+          }
+        }
+      }
+    },
     "Available Regions" : {
       "localizations" : {
         "en" : {
@@ -697,6 +793,22 @@
         }
       }
     },
+    "Certificate Trust" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificate Trust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "证书信任"
+          }
+        }
+      }
+    },
     "Changing the device GUID may cause all existing accounts to stop working. Apple limits the number of devices you can sign in with at once." : {
       "localizations" : {
         "en" : {
@@ -727,6 +839,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "检查中"
+          }
+        }
+      }
+    },
+    "Checking certificate trust and local server..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking certificate trust and local server..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查证书信任和本地服务器…"
+          }
+        }
+      }
+    },
+    "Choose IPA File" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose IPA File"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择 IPA 文件"
+          }
+        }
+      }
+    },
+    "Choose an iOS IPA containing one main app with a valid bundle identifier and build version." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an iOS IPA containing one main app with a valid bundle identifier and build version."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择包含一个主应用、有效 Bundle ID 和构建版本的 iOS IPA。"
           }
         }
       }
@@ -1021,6 +1181,22 @@
         }
       }
     },
+    "Device installation failed. See Settings > Logs for details." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device installation failed. See Settings > Logs for details."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备安装失败。请在“设置 > 日志”中查看详情。"
+          }
+        }
+      }
+    },
     "Direct Download" : {
       "localizations" : {
         "en" : {
@@ -1101,6 +1277,22 @@
         }
       }
     },
+    "Download Requested" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Requested"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已请求下载"
+          }
+        }
+      }
+    },
     "Download and save the IPA file." : {
       "localizations" : {
         "en" : {
@@ -1129,22 +1321,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载失败。"
-          }
-        }
-      }
-    },
-    "Download Requested" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download Requested"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已请求下载"
           }
         }
       }
@@ -1493,6 +1669,54 @@
         }
       }
     },
+    "Import IPA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import IPA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入 IPA"
+          }
+        }
+      }
+    },
+    "Import an IPA from ipatool or another tool without adding an Apple account. Files are kept temporarily and removed after 24 hours or when Asspp restarts. Total storage is limited to 8 GiB." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import an IPA from ipatool or another tool without adding an Apple account. Files are kept temporarily and removed after 24 hours or when Asspp restarts. Total storage is limited to 8 GiB."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无需添加 Apple 账户即可导入 ipatool 等工具获取的 IPA。文件为临时保存，24 小时后或 Asspp 重启时删除，总存储上限为 8 GiB。"
+          }
+        }
+      }
+    },
+    "Importing IPA..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importing IPA..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在导入 IPA…"
+          }
+        }
+      }
+    },
     "Incomplete Package" : {
       "localizations" : {
         "en" : {
@@ -1569,6 +1793,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "直接安装或通过 AirDrop 安装。"
+          }
+        }
+      }
+    },
+    "Install the Asspp certificate profile in Settings > General > VPN & Device Management, then enable full trust for Asspp Local Installation CA in Settings > General > About > Certificate Trust Settings. Replace any older Asspp certificate profile first." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install the Asspp certificate profile in Settings > General > VPN & Device Management, then enable full trust for Asspp Local Installation CA in Settings > General > About > Certificate Trust Settings. Replace any older Asspp certificate profile first."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“设置 > 通用 > VPN 与设备管理”中安装 Asspp 证书描述文件，然后在“设置 > 通用 > 关于本机 > 证书信任设置”中启用对 Asspp Local Installation CA 的完全信任。请先替换旧版 Asspp 证书描述文件。"
           }
         }
       }
@@ -1676,6 +1916,22 @@
         }
       }
     },
+    "Keep Asspp open while iOS downloads the package. A valid signature and the required App Store license are still needed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Asspp open while iOS downloads the package. A valid signature and the required App Store license are still needed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS 下载安装包时请保持 Asspp 打开。仍然需要有效的签名和必要的 App Store 许可。"
+          }
+        }
+      }
+    },
     "Keyword" : {
       "localizations" : {
         "en" : {
@@ -1776,22 +2032,6 @@
         }
       }
     },
-    "No account available for this region." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No account available for this region."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此地区没有可用的账户。"
-          }
-        }
-      }
-    },
     "No Accounts" : {
       "localizations" : {
         "en" : {
@@ -1820,6 +2060,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无下载"
+          }
+        }
+      }
+    },
+    "No account available for this region." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No account available for this region."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此地区没有可用的账户。"
           }
         }
       }
@@ -1935,6 +2191,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "软件包稍后可以在下载页面安装。"
+          }
+        }
+      }
+    },
+    "Package sent to iOS. Check the Home Screen for installation progress." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Package sent to iOS. Check the Home Screen for installation progress."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装包已发送至 iOS。请在主屏幕查看安装进度。"
           }
         }
       }
@@ -2148,8 +2420,6 @@
       }
     },
     "Refresh Devices" : {
-      "comment" : "A button to refresh the list of connected devices.",
-      "isCommentAutoGenerated" : true,
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2273,6 +2543,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "继续"
+          }
+        }
+      }
+    },
+    "Retry Installation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry Installation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试安装"
           }
         }
       }
@@ -2401,6 +2687,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择账户"
+          }
+        }
+      }
+    },
+    "Select a Device" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a Device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择设备"
           }
         }
       }
@@ -2551,22 +2853,6 @@
         }
       }
     },
-    "Show in Finder" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show in Finder"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在访达中显示"
-          }
-        }
-      }
-    },
     "Show Logs" : {
       "localizations" : {
         "en" : {
@@ -2597,6 +2883,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示密码"
+          }
+        }
+      }
+    },
+    "Show in Finder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在访达中显示"
           }
         }
       }
@@ -2699,6 +3001,54 @@
         }
       }
     },
+    "The local installation certificate could not be loaded." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The local installation certificate could not be loaded."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载本地安装证书。"
+          }
+        }
+      }
+    },
+    "The local installation server could not be reached. Allow local network access for Asspp and check that app.localhost.qaq.wiki resolves to 127.0.0.1 in your DNS or VPN settings." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The local installation server could not be reached. Allow local network access for Asspp and check that app.localhost.qaq.wiki resolves to 127.0.0.1 in your DNS or VPN settings."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接到本地安装服务器。请允许 Asspp 访问本地网络，并检查 DNS 或 VPN 是否将 app.localhost.qaq.wiki 解析为 127.0.0.1。"
+          }
+        }
+      }
+    },
+    "The original IPA is preserved. Installation requires a valid signature and any required App Store license; importing does not resign or decrypt the app." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The original IPA is preserved. Installation requires a valid signature and any required App Store license; importing does not resign or decrypt the app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原始 IPA 保持不变。安装需要有效的签名和必要的 App Store 许可；导入不会重新签名或解密应用。"
+          }
+        }
+      }
+    },
     "The package can be installed later from the Downloads page." : {
       "localizations" : {
         "en" : {
@@ -2711,6 +3061,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "软件包稍后可以从下载页面安装。"
+          }
+        }
+      }
+    },
+    "This ID, combined with a random seed generated on this device, can be used to download packages from the App Store." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This ID, combined with a random seed generated on this device, can be used to download packages from the App Store."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此 ID 与在此设备上生成的随机种子结合，可以用于从 App Store 下载软件包。"
           }
         }
       }
@@ -2743,22 +3109,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此邮箱用于登录 Apple 服务。"
-          }
-        }
-      }
-    },
-    "This ID, combined with a random seed generated on this device, can be used to download packages from the App Store." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This ID, combined with a random seed generated on this device, can be used to download packages from the App Store."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此 ID 与在此设备上生成的随机种子结合，可以用于从 App Store 下载软件包。"
           }
         }
       }
@@ -2839,6 +3189,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法获取下载链接，请稍后重试。"
+          }
+        }
+      }
+    },
+    "Unable to save the account to Keychain. Check the app's code signing and Keychain access, then try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to save the account to Keychain. Check the app's code signing and Keychain access, then try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法将账户保存到钥匙串。请检查应用签名和钥匙串访问权限，然后重试。"
           }
         }
       }
@@ -3045,19 +3412,18 @@
         }
       }
     },
-    "Unable to save the account to Keychain. Check the app's code signing and Keychain access, then try again." : {
-      "extractionState" : "manual",
+    "iOS could not open the installation link. Retry after checking certificate trust and local network permission." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unable to save the account to Keychain. Check the app's code signing and Keychain access, then try again."
+            "value" : "iOS could not open the installation link. Retry after checking certificate trust and local network permission."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法将账户保存到钥匙串。请检查应用签名和钥匙串访问权限，然后重试。"
+            "value" : "iOS 无法打开安装链接。请检查证书信任和本地网络权限后重试。"
           }
         }
       }

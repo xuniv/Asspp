@@ -1,8 +1,34 @@
+import ApplePackage
 import Foundation
 import ZIPFoundation
 
 enum StorePackageValidator {
     static func validate(at url: URL, package: AppStore.AppPackage) throws {
+        let info = try readInfo(at: url)
+        try StoreDownloadProtocol.validatePackageInfo(
+            info, bundleID: package.software.bundleID,
+            platform: package.entityType == .appleTV ? "AppleTVOS" : "iPhoneOS",
+        )
+    }
+
+    static func importedPackage(at url: URL) throws -> AppStore.AppPackage {
+        let info = try readInfo(at: url)
+        guard let bundleID = info["CFBundleIdentifier"] as? String, !bundleID.isEmpty,
+              bundleID.range(of: #"^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*$"#, options: .regularExpression) != nil,
+              let version = (info["CFBundleVersion"] ?? info["CFBundleShortVersionString"]) as? String, !version.isEmpty
+        else { throw InstallationError.invalidIPA }
+        try StoreDownloadProtocol.validatePackageInfo(info, bundleID: bundleID, platform: "iPhoneOS")
+        return .init(software: .init(
+            id: 0, bundleID: bundleID,
+            name: (info["CFBundleDisplayName"] ?? info["CFBundleName"]) as? String ?? bundleID,
+            version: version, artistName: "", sellerName: "", description: "",
+            averageUserRating: 0, userRatingCount: 0, artworkUrl: "", screenshotUrls: [],
+            minimumOsVersion: info["MinimumOSVersion"] as? String ?? "", releaseDate: "",
+            formattedPrice: "", primaryGenreName: "",
+        ), entityType: .iPhone)
+    }
+
+    private static func readInfo(at url: URL) throws -> [String: Any] {
         let archive = try Archive(url: url, accessMode: .read)
         let entries = archive.filter { StoreDownloadProtocol.isMainInfoPlist($0.path) }
         guard entries.count == 1, let entry = entries.first, entry.uncompressedSize <= 1024 * 1024 else {
@@ -16,9 +42,6 @@ enum StorePackageValidator {
         guard let info = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
             throw StoreDownloadError.invalidPackage
         }
-        try StoreDownloadProtocol.validatePackageInfo(
-            info, bundleID: package.software.bundleID,
-            platform: package.entityType == .appleTV ? "AppleTVOS" : "iPhoneOS",
-        )
+        return info
     }
 }

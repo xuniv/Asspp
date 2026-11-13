@@ -1,4 +1,4 @@
-name: Store download checks
+name: Protocol and installer checks
 on:
   push:
     branches: [main]
@@ -7,9 +7,13 @@ on:
 permissions:
   contents: read
 jobs:
-  downloads:
+  checks:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-      - name: Check fallback, response validation and localization
+        with:
+          persist-credentials: false
+      - name: Check downloads and localization
         run: bash Resources/Scripts/check.downloads.sh
+      - name: Check authentication, install URLs, and CA profile
+        run: bash Resources/Scripts/check.authentication-installer.sh

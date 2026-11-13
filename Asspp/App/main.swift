@@ -67,9 +67,12 @@ Task.detached(priority: .background) {
 DiggerManager.shared.maxConcurrentTasksCount = 3
 DiggerManager.shared.startDownloadImmediately = true
 
+Task { @MainActor in _ = ImportedIPAStore.shared }
+
 #if os(iOS)
-    Task.detached {
-        _ = try await Installer(certificateAtPath: Installer.ca.path)
+    Task { @MainActor in
+        do { _ = try await Installer.certificateURL() }
+        catch { logger.error("Certificate server startup failed: \(StoreDiagnostics.errorSummary(error))") }
     }
 #endif
 

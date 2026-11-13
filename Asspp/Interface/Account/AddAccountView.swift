@@ -20,7 +20,7 @@ struct AddAccountView: View {
     @State private var codeRequired: Bool = false
     @State private var code: String = ""
 
-    @State private var authenticator: ApplePackage.Authenticator?
+    @State private var authenticator: StoreAuthenticator?
     @State private var isAuthenticating = false
     @State private var error: Error?
 
@@ -84,18 +84,18 @@ struct AddAccountView: View {
                     defer { isAuthenticating = false }
                     logger.info("starting authentication for user")
                     do {
-                        let session: ApplePackage.Authenticator
+                        let session: StoreAuthenticator
                         if let authenticator {
                             session = authenticator
                         } else {
-                            session = try await ApplePackage.Authenticator()
+                            session = try await StoreAuthenticator()
                             authenticator = session
                         }
                         _ = try await vm.authenticate(email: email, password: password, code: code, using: session)
                         logger.info("authentication successful for user")
                         dismiss()
                     } catch {
-                        logger.error("authentication failed: \(error.localizedDescription)")
+                        logger.error("authentication failed: \(StoreDiagnostics.errorSummary(error))")
                         self.error = error
                         if case ApplePackage.AuthenticationError.verificationCodeRequired = error {
                             codeRequired = true

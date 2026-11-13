@@ -119,23 +119,27 @@ class Installer: Identifiable, @unchecked Sendable {
 
         app = try await Self.setupApp(port: port, secured: false)
 
-        app.get("*") { req in
-            try await req.fileio.asyncStreamFile(
-                at: certificateAtPath,
-                chunkSize: 64 * 1024,
-            )
+        let certificate = try InstallationProtocol.certificateDER(pem: Data(contentsOf: URL(fileURLWithPath: certificateAtPath)))
+        let profile = try InstallationProtocol.certificateProfile(certificate: certificate)
+        app.get("Asspp-Local-Installation.mobileconfig") { _ in
+            Response(status: .ok, headers: [
+                "Content-Type": "application/x-apple-aspen-config",
+                "Content-Disposition": "attachment; filename=Asspp-Local-Installation.mobileconfig",
+                "Cache-Control": "no-store",
+            ], body: .init(data: profile))
+        }
+        app.get("ca.cer") { _ in
+            Response(status: .ok, headers: ["Content-Type": "application/x-x509-ca-cert", "Cache-Control": "no-store"], body: .init(data: certificate))
         }
 
         var comps = URLComponents()
         comps.scheme = "http"
-        comps.host = "localhost"
+        comps.host = "127.0.0.1"
         comps.port = port
-        comps.path = "/ca.crt"
+        comps.path = InstallationProtocol.profilePath
         let url = comps.url!
-        Installer.caURL = url
-
         try app.server.start()
-
+        Installer.caURL = url
         Installer.caInstaller = self
     }
 

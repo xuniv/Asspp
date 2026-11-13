@@ -1,93 +1,67 @@
-//
-//  InstallerView.swift
-//  Asspp
-//
-//  Created by 秋星桥 on 2024/7/11.
-//
-
 #if os(iOS)
     import SwiftUI
     import UIKit
 
     struct InstallerView: View {
         @State var installer: Installer
+        @State private var checking = false
+        @State private var error: String?
+        @Environment(\.openURL) private var openURL
 
-        var icon: String {
-            switch installer.status {
-            case .ready:
-                "app.gift"
-            case .sendingManifest:
-                "paperplane.fill"
-            case .sendingPayload:
-                "paperplane.fill"
-            case let .completed(result):
-                switch result {
-                case .success:
-                    "app.badge.checkmark"
-                case .failure:
-                    "exclamationmark.triangle.fill"
-                }
-            case .broken:
-                "exclamationmark.triangle.fill"
-            }
-        }
-
-        var text: String {
+        private var status: String {
             switch installer.status {
             case .ready: String(localized: "Ready To Install")
             case .sendingManifest: String(localized: "Sending Manifest...")
             case .sendingPayload: String(localized: "Sending Payload...")
             case let .completed(result):
                 switch result {
-                case .success:
-                    String(localized: "Install Completed")
-                case let .failure(failure):
-                    failure.localizedDescription
+                case .success: String(localized: "Package sent to iOS. Check the Home Screen for installation progress.")
+                case let .failure(error): error.localizedDescription
                 }
-            case let .broken(error):
-                error.localizedDescription
+            case let .broken(error): error.localizedDescription
             }
         }
 
         var body: some View {
-            ZStack {
-                Button {
-                    if case .ready = installer.status {
-                        UIApplication.shared.open(installer.iTunesLink)
+            NavigationStack {
+                Form {
+                    Section {
+                        if checking { ProgressView("Checking certificate trust and local server...") }
+                        else { Text(status) }
+                        if let error { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+                        Button("Retry Installation") { Task { await install() } }
+                            .disabled(checking)
                     }
-                } label: {
-                    VStack(spacing: 32) {
-                        ForEach([icon], id: \.self) { icon in
-                            Image(systemName: icon)
-                                .font(.system(.largeTitle, design: .rounded))
-                                .transition(.opacity.combined(with: .scale))
+                    Section {
+                        Button("Install Certificate") {
+                            Task {
+                                do { openURL(try await Installer.certificateURL()) }
+                                catch { self.error = error.localizedDescription }
+                            }
                         }
-                        ForEach([text], id: \.self) { text in
-                            Text(text)
-                                .font(.system(.body, design: .rounded))
-                                .transition(.opacity)
-                        }
+                        Button("Open Settings") { openURL(URL(string: UIApplication.openSettingsURLString)!) }
+                    } header: { Text("Certificate Trust") }
+                        footer: { Text("Install the Asspp certificate profile in Settings > General > VPN & Device Management, then enable full trust for Asspp Local Installation CA in Settings > General > About > Certificate Trust Settings. Replace any older Asspp certificate profile first.") }
+                    Section {
+                        Text("Keep Asspp open while iOS downloads the package. A valid signature and the required App Store license are still needed.")
                     }
                 }
-                .buttonStyle(.plain)
-                .onAppear {
-                    if case .ready = installer.status {
-                        UIApplication.shared.open(installer.iTunesLink)
-                    }
-                }
-                VStack {
-                    Text("Grant local network permission to install apps and communicate with system services.")
-                }
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .padding(32)
+                .navigationTitle("Install")
             }
-            .animation(.spring, value: text)
-            .animation(.spring, value: icon)
-            .onDisappear {
-                installer.destroy()
-            }
+            .task { await install() }
+            .onDisappear { installer.destroy() }
+        }
+
+        @MainActor
+        private func install() async {
+            guard !checking else { return }
+            checking = true
+            error = nil
+            defer { checking = false }
+            do {
+                try await installer.checkConnection()
+                guard await UIApplication.shared.open(installer.iTunesLink) else { throw InstallationError.linkRejected }
+            } catch { self.error = error.localizedDescription }
         }
     }
 #endif

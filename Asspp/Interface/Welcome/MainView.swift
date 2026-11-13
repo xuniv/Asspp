@@ -60,6 +60,8 @@ struct MainView: View {
                 SearchView()
             case .downloads:
                 DownloadView()
+            case .imports:
+                ImportIPAView()
             case .installed:
                 InstalledListView()
             case .settings:
@@ -73,6 +75,7 @@ struct MainView: View {
         case accounts
         case search
         case downloads
+        case imports
         case installed
         case settings
 
@@ -90,6 +93,8 @@ struct MainView: View {
                 "Search"
             case .downloads:
                 "Downloads"
+            case .imports:
+                "Import IPA"
             case .installed:
                 "Installed"
             case .settings:
@@ -107,6 +112,8 @@ struct MainView: View {
                 "magnifyingglass"
             case .downloads:
                 "arrow.down.circle"
+            case .imports:
+                "square.and.arrow.down"
             case .installed:
                 "square.stack.3d.up.badge.automatic.fill"
             case .settings:
@@ -189,6 +196,8 @@ struct MainView: View {
                         Label("Downloads", systemImage: "arrow.down.circle")
                     }
                     .badge(dvm.runningTaskCount) // putting badge inside will not work on iOS versions before 18
+                ImportIPAView()
+                    .tabItem { Label("Import IPA", systemImage: "square.and.arrow.down") }
                 SettingView()
                     .tabItem { Label("Settings", systemImage: "gear") }
             }
@@ -208,6 +217,7 @@ struct MainView: View {
                 }
                 Tab("Downloads", systemImage: "arrow.down.circle") { DownloadView() }
                     .badge(dvm.runningTaskCount)
+                Tab("Import IPA", systemImage: "square.and.arrow.down") { ImportIPAView() }
                 Tab("Settings", systemImage: "gear") { SettingView() }
             }
             .neverMinimizeTab()

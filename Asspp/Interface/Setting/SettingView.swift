@@ -20,6 +20,8 @@ struct SettingView: View {
     @State private var editingDeviceId = false
     @State private var deviceIdDraft = ""
     @State private var showResetConfirmation = false
+    @State private var certificateError: String?
+    @State private var preparingCertificate = false
 
     var body: some View {
         NavigationStack {
@@ -115,15 +117,24 @@ struct SettingView: View {
                             openURL(URL(string: UIApplication.openSettingsURLString)!)
                         }
                         Button("Install Certificate") {
-                            openURL(Installer.caURL)
+                            preparingCertificate = true
+                            Task {
+                                defer { preparingCertificate = false }
+                                do {
+                                    certificateError = nil
+                                    openURL(try await Installer.certificateURL())
+                                } catch { certificateError = error.localizedDescription }
+                            }
                         }
+                        .disabled(preparingCertificate)
+                        if let certificateError { Text(certificateError).foregroundStyle(.red) }
                     #endif
                 }
             } header: {
                 Text("Device")
             } footer: {
                 #if canImport(UIKit)
-                    Text("Grant local network permission to install apps. Install and trust the SSL certificate for on-device installation.")
+                    Text("Install the Asspp certificate profile in Settings > General > VPN & Device Management, then enable full trust for Asspp Local Installation CA in Settings > General > About > Certificate Trust Settings. Replace any older Asspp certificate profile first.")
                 #else
                     Text("Grant local network permission to install apps. Install the SSL certificate through System Keychain.")
                 #endif

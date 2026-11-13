@@ -2,17 +2,16 @@
 
 set -euo pipefail
 
-SRCROOT=$(realpath "$1")
+SRCROOT=$(cd "$1" && pwd -P)
 TARGET_IPA=$2
 
 WORKSPACE="$SRCROOT/Asspp.xcworkspace"
 SCHEME="Asspp"
 BUILD_PRODUCT="Asspp.app"
 
-cd $SRCROOT
+cd "$SRCROOT"
 
-git clean -fdx -f
-git reset --hard
+
 
 # Generate Developer.xcconfig for CI (codesign completely disabled)
 cat >"$SRCROOT/Configuration/Developer.xcconfig" <<'EOF'
@@ -42,13 +41,13 @@ for i in $(find "$SRCROOT/build/DerivedDataApp" -name "$BUILD_PRODUCT"); do
     BUILD_PRODUCT_PATH=$i
     break
 done
-BUILD_PRODUCT_PATH=$(realpath "$BUILD_PRODUCT_PATH")
 
 if [ -z "$BUILD_PRODUCT_PATH" ]; then
     echo "[-] build product not found"
     exit 1
 fi
 
+BUILD_PRODUCT_PATH=$(cd "$BUILD_PRODUCT_PATH" && pwd -P)
 echo "[+] build product path: $BUILD_PRODUCT_PATH"
 
 echo "[+] packaging..."

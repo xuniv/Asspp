@@ -72,7 +72,13 @@ struct PackageView: View {
                 #if os(iOS)
                     Section {
                         AsyncButton {
-                            installer = try await Installer(archive: archive, path: url)
+                            do {
+                                error = ""
+                                installer = try await Installer(archive: archive, path: url)
+                            } catch {
+                                self.error = error.localizedDescription
+                                throw error
+                            }
                         } label: {
                             Text("Install")
                         }

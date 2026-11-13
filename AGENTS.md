@@ -92,3 +92,12 @@ SwiftUI views organized by feature: Account, Search, Download, Installed (macOS 
 - **Structure**: Early returns, guard statements for unwrapping, single responsibility per extension.
 - **Modern Swift**: `@Observable` macro, `async/await`, `@MainActor`, opaque `some` types.
 - **Memory**: `weak`/`unowned` references to break cycles, capture lists in closures.
+
+## Fork protocol and installation rules
+
+- `StoreAuthenticator` owns login transport; `StoreAuthenticationProtocol` validates endpoints and classifies retries. Keep SAP signing mandatory on every POST and retain the same signer for 2FA. Never retry populated credential errors as transient edge failures or clear a previous storefront/pod when Apple omits headers.
+- Authentication logs may include numeric HTTP status and attempt counts only. Never retain account messages, credentials, cookies, signatures, or redirect queries.
+- OTA URLs use `InstallationProtocol.installLink`: the port belongs only in the HTTPS manifest URL. System certificate verification must remain enabled; never add trust-all delegates, custom root anchors to bypass device trust, or ATS-wide exceptions.
+- The CA endpoint serves a DER-root `.mobileconfig` with `application/x-apple-aspen-config`; `Installer.certificateURL()` waits for server readiness. Bind both local servers to loopback. The profile must contain public certificates only; never embed a root private key or personal signing identity.
+- Imported IPA files stay separate from downloaded packages/accounts. Stream/copy files without modification, validate only bounded main-app plist metadata, purge imports on restart and after 24 hours, and enforce the 8 GiB cap.
+- Run `bash Resources/Scripts/check.authentication-installer.sh` along with download checks. macOS CI compiles English/Chinese localization and the unsigned iOS/macOS targets. Preserve release privacy checks before any artifact publication.

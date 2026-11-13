@@ -26,7 +26,7 @@ extension Installer {
         app.http.server.configuration.hostname = Self.sni
         app.http.server.configuration.tcpNoDelay = true
 
-        app.http.server.configuration.address = .hostname("0.0.0.0", port: port)
+        app.http.server.configuration.address = .hostname("127.0.0.1", port: port)
         app.http.server.configuration.port = port
 
         app.routes.defaultMaxBodySize = "128mb"
