@@ -221,7 +221,7 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     }
 }
 
-enum StoreRuntimeError: LocalizedError {
+enum StoreRuntimeError: LocalizedError, StoreDiagnosticError {
     case unavailable
     case startup(String)
     case operation(String, Int)
