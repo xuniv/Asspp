@@ -5,9 +5,33 @@ import plistlib
 import re
 import shutil
 import stat
+import subprocess
 import sys
+import tempfile
 import zipfile
 
+
+def unsigned_image(data):
+    """Remove inherited SDK signatures with Apple's Mach-O-aware tool."""
+    with tempfile.TemporaryDirectory(prefix='asspp-unsigned-image-') as temporary:
+        image = pathlib.Path(temporary) / 'image'
+        image.write_bytes(data)
+        signature = subprocess.run(['codesign', '--display', str(image)], capture_output=True, text=True)
+        if signature.returncode:
+            if 'not signed at all' not in signature.stderr:
+                raise ValueError('unable to inspect embedded Mach-O signature')
+            return data
+        subprocess.run(['codesign', '--remove-signature', str(image)], check=True, capture_output=True)
+        check = subprocess.run(['codesign', '--display', str(image)], capture_output=True, text=True)
+        if not check.returncode or 'not signed at all' not in check.stderr:
+            raise ValueError('embedded Mach-O signature was not removed')
+        return image.read_bytes()
+
+
+MACHO_MAGICS = {bytes.fromhex(value) for value in (
+    'feedface', 'cefaedfe', 'feedfacf', 'cffaedfe',
+    'cafebabe', 'bebafeca', 'cafebabf', 'bfbafeca',
+)}
 source, destination = map(pathlib.Path, sys.argv[1:])
 english = re.compile(r'^(?:en(?:[-_][A-Za-z0-9]+)*|English|Base)\.lproj$', re.I)
 with zipfile.ZipFile(source) as original, zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as output:
@@ -19,7 +43,11 @@ with zipfile.ZipFile(source) as original, zipfile.ZipFile(destination, 'w', comp
         mode = (entry.external_attr >> 16) & 0o777
         target.external_attr = ((stat.S_IFDIR | 0o755) if entry.is_dir() else (stat.S_IFREG | (0o755 if mode & 0o111 else 0o644))) << 16
         target.compress_type = zipfile.ZIP_DEFLATED
-        if entry.filename.endswith('/Info.plist') and entry.file_size <= 4 * 1024 * 1024:
+        with original.open(entry) as reader:
+            macho = reader.read(4) in MACHO_MAGICS
+        if macho:
+            output.writestr(target, unsigned_image(original.read(entry)))
+        elif entry.filename.endswith('/Info.plist') and entry.file_size <= 4 * 1024 * 1024:
             data = original.read(entry)
             value = plistlib.loads(data)
             if 'CFBundleLocalizations' in value:

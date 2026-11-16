@@ -2,6 +2,12 @@ name: Unsigned Release
 on:
   push:
     tags: ['4.*']
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Existing release whose AltStore package should be regenerated
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -9,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   runtime:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,3 +107,33 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             release/Asspp.ipa release/Asspp-AltStore.ipa release/Asspp.zip --verify-tag \
             --title "$GITHUB_REF_NAME" --notes-file Resources/ReleaseNotes.md
+  source-package:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: macos-26
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Regenerate the unsigned AltStore package from the public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_VERSION" =~ ^4\.[0-9]+\.[0-9]+$ ]]
+          cd "$RUNNER_TEMP"
+          gh release download "$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --pattern Asspp.ipa
+          export EXPECTED_SHA="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_VERSION" --jq '.assets[] | select(.name == "Asspp.ipa") | .digest')"
+          python3 - <<'PY'
+          import hashlib, os, pathlib
+          expected = os.environ['EXPECTED_SHA']
+          actual = 'sha256:' + hashlib.sha256(pathlib.Path('Asspp.ipa').read_bytes()).hexdigest()
+          if expected != actual:
+              raise SystemExit('public source IPA digest mismatch')
+          PY
+          python3 "$GITHUB_WORKSPACE/Resources/Scripts/check.release.privacy.py" Asspp.ipa
+          python3 "$GITHUB_WORKSPACE/Resources/Scripts/prepare.alt.ipa.py" Asspp.ipa Asspp-AltStore.ipa
+          python3 "$GITHUB_WORKSPACE/Resources/Scripts/check.release.privacy.py" Asspp-AltStore.ipa
+          gh release upload "$RELEASE_VERSION" Asspp-AltStore.ipa --repo "$GITHUB_REPOSITORY" --clobber
