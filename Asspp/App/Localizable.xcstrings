@@ -3427,6 +3427,70 @@
           }
         }
       }
+    },
+    "Preparing Apple authentication. The first run may take several minutes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing Apple authentication. The first run may take several minutes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备 Apple 认证。首次运行可能需要几分钟。"
+          }
+        }
+      }
+    },
+    "Communicating with Apple…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Communicating with Apple…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在与 Apple 通信…"
+          }
+        }
+      }
+    },
+    "Apple authentication could not start. Check your connection and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple authentication could not start. Check your connection and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法启动 Apple 认证。请检查网络连接后重试。"
+          }
+        }
+      }
+    },
+    "Apple could not complete the request. Try signing in again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple could not complete the request. Try signing in again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple 未能完成请求。请重新登录。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

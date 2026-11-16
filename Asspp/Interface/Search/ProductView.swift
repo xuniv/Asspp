@@ -114,10 +114,7 @@ struct ProductView: View {
                 let session = try await StoreAuthenticator(cookies: previous.cookie, previous: previous)
                 userAccount.account = try await session.authenticate(email: previous.email, password: previous.password)
             }
-            try await ApplePackage.Purchase.purchase(
-                account: &userAccount.account,
-                app: archive.package.software,
-            )
+            try await ModernStore.purchase(account: userAccount.account, package: archive.package)
         }
         licenseHint = Hint(message: String(localized: "Request Succeeded"), color: .green)
     }

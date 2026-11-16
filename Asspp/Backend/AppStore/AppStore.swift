@@ -120,7 +120,8 @@ class AppStore {
     }
 
     func delete(id: UserAccount.ID) {
-        logger.info("deleting account id: \(id)")
+        logger.info("deleting account")
+        Task { await StoreRuntimeClient.shared.remove(email: id) }
         accounts = accounts.filter { $0.id != id }
     }
 

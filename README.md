@@ -94,3 +94,12 @@ Copyright © 2025 Lakr Aream. All Rights Reserved.
 See [4.2.3 release notes](Resources/ReleaseNotes.md) for the authentication retry strategy, temporary **Import IPA** page, and iOS CA setup. In particular, installing the CA profile and enabling **full trust** are separate iOS steps. Asspp checks system trust before launching OTA installation and never disables TLS verification.
 
 The fork keeps only build, protocol/installer checks, and unsigned release workflows. Unsigned artifacts contain no personal signing team or provisioning profile. The bundled local TLS leaf key is required for the on-device HTTPS server; no CA private key is included.
+
+
+### Client-side Store runtime (fork)
+
+This fork runs the pinned modern ipatool implementation inside a bundled WKWebView using a WebAssembly ARM64 interpreter. Authentication, machine provisioning and Store downloads execute on the device. No hosted authentication server, jailbreak or native JIT entitlement is required. Account state stays in Keychain, and packaged public Apple images are hash-verified before use. Sign in to existing accounts again after upgrading from the legacy protocol.
+
+Builds require `bash Resources/Scripts/prepare.store.runtime.sh` before Xcode. The script pins the shared runtime's exact source revision and downloads only public build dependencies/Apple assets. CI runs actual guests in WKWebView before packaging the unsigned app.
+
+The normal IPA includes the app's localizations. `Asspp-AltStore.ipa` is an English-only variant for https://xuniv.github.io/alt/source.json and passes that source's existing publication gate. Installing App Store IPAs through the local OTA installer requires installing its CA profile and enabling full certificate trust in iOS Settings.

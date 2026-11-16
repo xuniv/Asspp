@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A55F00000000000000000001 /* StoreRuntime.bundle in Resources */ = {isa = PBXBuildFile; fileRef = A55F00000000000000000002 /* StoreRuntime.bundle */; };
 		507974632E784D4E0016F540 /* Digger in Frameworks */ = {isa = PBXBuildFile; productRef = 507974622E784D4E0016F540 /* Digger */; };
 		50ABFB122F48A6D60077DE1A /* ApplePackage in Frameworks */ = {isa = PBXBuildFile; productRef = 50ABFB112F48A6D60077DE1A /* ApplePackage */; };
 		50ABFE1F2F48AAE50077DE1A /* ButtonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 50ABFE1E2F48AAE50077DE1A /* ButtonKit */; };
@@ -26,6 +27,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        A55F00000000000000000002 /* StoreRuntime.bundle */ = {isa = PBXFileReference; lastKnownFileType = wrapper.cfbundle; path = StoreRuntime.bundle; sourceTree = "<group>"; };
 		50D44D022C3F91F700CF6A69 /* Asspp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Asspp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		50DCBD772F346DFE007100D2 /* Certificates */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Certificates; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -81,6 +83,7 @@
 			children = (
 				50DCBBF92F346C6F007100D2 /* Asspp */,
 				50DCBD772F346DFE007100D2 /* Certificates */,
+                A55F00000000000000000002 /* StoreRuntime.bundle */,
 				50DCBBB42F346C57007100D2 /* Configuration */,
 				50D44D032C3F91F700CF6A69 /* Products */,
 				50D44D172C3F92A100CF6A69 /* Frameworks */,
@@ -197,6 +200,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				50DCBD782F346E01007100D2 /* Certificates in Resources */,
+                A55F00000000000000000001 /* StoreRuntime.bundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

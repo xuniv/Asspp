@@ -55,7 +55,7 @@ xcconfig hierarchy: `Debug.xcconfig`/`Release.xcconfig` → `Base.xcconfig` → 
 
 ### Backend Layer (`Asspp/Backend/`)
 
-- **AppStore/**: `AppStore` singleton manages accounts and device identifier. `AuthenticationService` handles auth using ApplePackage's SAP-signed authenticator; `AddAccountView` retains the authenticator across verification-code attempts. `AppPackage`/`AppPackageArchive`/`UserAccount` are model wrappers around ApplePackage types.
+- **AppStore/**: `AppStore` singleton manages accounts and device identifier. `AuthenticationService` handles auth using the bundled client Store runtime; `AddAccountView` retains the authenticator across verification-code attempts. `AppPackage`/`AppPackageArchive`/`UserAccount` are model wrappers around ApplePackage types.
 - **Downloader/**: `Downloads` singleton manages download queue via `Digger`. `PackageManifest` tracks per-download state and IPA signature injection. Downloads persist to `Documents/Asspp/Packages/`.
 - **Installer/**: iOS-only Vapor HTTPS server serving IPA files for OTA installation via `itms-services://` protocol. Uses TLS certs from `Certificates/localhost.qaq.wiki/` bundle.
 - **DeviceCTL/**: macOS-only device management via `devicectl` CLI. `DeviceManager` handles app installation to connected iOS devices.
@@ -95,9 +95,18 @@ SwiftUI views organized by feature: Account, Search, Download, Installed (macOS 
 
 ## Fork protocol and installation rules
 
-- `StoreAuthenticator` owns login transport; `StoreAuthenticationProtocol` validates endpoints and classifies retries. Keep SAP signing mandatory on every POST and retain the same signer for 2FA. Never retry populated credential errors as transient edge failures or clear a previous storefront/pod when Apple omits headers.
+- `StoreAuthenticator` and `ModernStore` use the shared client-side ipatool runtime pinned by `Resources/Scripts/prepare.store.runtime.sh`. Keep login, license acquisition, downloads and version operations on this engine; do not restore the legacy ApplePackage transport.
+- The bundled WKWebView runs a Go/WASM ARM64 interpreter without native JIT, jailbreak entitlements, remote scripts or a hosted authentication service. Network.framework transports encrypted TCP on approved Apple hosts/443; Go verifies Apple TLS with its pinned public Mozilla/Apple roots. The OTA installer's separate system/device trust checks remain mandatory.
+- Runtime provisioning/account records belong in Keychain only. The disk cache contains only size/hash-verified public Apple images. Package public images at build time as compressed data; never extract large restore images in an iOS WebContent process.
+- Read the shared runtime's README before changing the pinned protocol or guest bridge. Retain local state across 2FA, preserve explicit credential/token/license errors and previous storefront/pod values.
 - Authentication logs may include numeric HTTP status and attempt counts only. Never retain account messages, credentials, cookies, signatures, or redirect queries.
 - OTA URLs use `InstallationProtocol.installLink`: the port belongs only in the HTTPS manifest URL. System certificate verification must remain enabled; never add trust-all delegates, custom root anchors to bypass device trust, or ATS-wide exceptions.
 - The CA endpoint serves a DER-root `.mobileconfig` with `application/x-apple-aspen-config`; `Installer.certificateURL()` waits for server readiness. Bind both local servers to loopback. The profile must contain public certificates only; never embed a root private key or personal signing identity.
 - Imported IPA files stay separate from downloaded packages/accounts. Stream/copy files without modification, validate only bounded main-app plist metadata, purge imports on restart and after 24 hours, and enforce the 8 GiB cap.
 - Run `bash Resources/Scripts/check.authentication-installer.sh` along with download checks. macOS CI compiles English/Chinese localization and the unsigned iOS/macOS targets. Preserve release privacy checks before any artifact publication.
+
+### Shared runtime build and checks
+
+The generated root `StoreRuntime.bundle` is a resource copied into both app targets. Prepare it with `bash Resources/Scripts/prepare.store.runtime.sh` (Go 1.26.5, Node 24, Python 3 and Git). CI prepares it once and shares the artifact across platforms. Run `bash Resources/Scripts/check.store.runtime.sh` on macOS: it executes actual SAP, ADI and Store-framework guests in the bundled WKWebView without an Apple account or network request.
+
+`Asspp-AltStore.ipa` is a separate English-only copy made by `prepare.alt.ipa.py`, to satisfy xuniv/alt's existing gate. The normal Asspp IPA retains its localizations. Both packages must pass release privacy checks. Alt publication must use alt's existing hash-pinned ingest gate; never bypass its denylist, withdrawal records or signing checks.

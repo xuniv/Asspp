@@ -8,7 +8,35 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.5'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ipatool/sap
+          key: public-apple-macos27-26A434-arm64-v5
+      - name: Build the pinned client interpreter and public assets
+        run: bash Resources/Scripts/prepare.store.runtime.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Asspp-client-runtime
+          path: StoreRuntime.bundle
+          retention-days: 3
+          if-no-files-found: error
   build:
+    needs: runtime
     runs-on: macos-26
     strategy:
       fail-fast: false
@@ -18,8 +46,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Asspp-client-runtime
+          path: StoreRuntime.bundle
       - name: Select stable Xcode
         run: bash Resources/Scripts/select.xcode.sh
+      - name: Check the bundled WKWebView interpreter offline
+        if: matrix.platform == 'ios'
+        run: bash Resources/Scripts/check.store.runtime.sh
       - name: Build and verify unsigned package
         env:
           PLATFORM: ${{ matrix.platform }}
@@ -30,6 +65,8 @@ jobs:
             bash Resources/Scripts/check.authentication-installer.sh
             zsh Resources/Scripts/compile.release.mobile.ci.sh "$PWD" "$RUNNER_TEMP/Asspp.ipa"
             python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.ipa"
+            python3 Resources/Scripts/prepare.alt.ipa.py "$RUNNER_TEMP/Asspp.ipa" "$RUNNER_TEMP/Asspp-AltStore.ipa"
+            python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp-AltStore.ipa"
           else
             zsh Resources/Scripts/compile.release.osx.sh "$PWD" "$RUNNER_TEMP/Asspp.zip"
             python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.zip"
@@ -39,6 +76,7 @@ jobs:
           name: Asspp-${{ matrix.platform }}-unsigned-release
           path: |
             ${{ runner.temp }}/Asspp.ipa
+            ${{ runner.temp }}/Asspp-AltStore.ipa
             ${{ runner.temp }}/Asspp.zip
           if-no-files-found: error
   publish:
@@ -60,5 +98,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            release/Asspp.ipa release/Asspp.zip --verify-tag \
+            release/Asspp.ipa release/Asspp-AltStore.ipa release/Asspp.zip --verify-tag \
             --title "$GITHUB_REF_NAME" --notes-file Resources/ReleaseNotes.md

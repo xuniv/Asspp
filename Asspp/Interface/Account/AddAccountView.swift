@@ -26,6 +26,11 @@ struct AddAccountView: View {
 
     var body: some View {
         Form {
+            if !StoreRuntime.shared.stage.isEmpty {
+                Section {
+                    Text(StoreRuntime.shared.progressText).foregroundStyle(.secondary)
+                }
+            }
             Section {
                 TextField("Email (Apple ID)", text: $email)
                 #if os(iOS)

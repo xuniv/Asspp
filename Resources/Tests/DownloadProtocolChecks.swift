@@ -186,13 +186,15 @@ struct DownloadProtocolChecks {
         for info in [
             ["CFBundleIdentifier": "example.app", "CFBundleSupportedPlatforms": ["iPhoneOS"]],
             ["CFBundleIdentifier": "example.app", "DTPlatformName": "iphoneos"],
+            ["CFBundleIdentifier": "example.app"],
         ] as [[String: Any]] {
             try StoreDownloadProtocol.validatePackageInfo(info, bundleID: "example.app", platform: "iPhoneOS")
         }
         for info in [
             ["CFBundleIdentifier": "other.app", "CFBundleSupportedPlatforms": ["iPhoneOS"]],
             ["CFBundleIdentifier": "example.app", "CFBundleSupportedPlatforms": ["AppleTVOS"]],
-            ["CFBundleIdentifier": "example.app"],
+            ["CFBundleIdentifier": "example.app", "CFBundleSupportedPlatforms": []],
+            ["CFBundleIdentifier": "example.app", "DTPlatformName": "appletvos"],
         ] as [[String: Any]] {
             do {
                 try StoreDownloadProtocol.validatePackageInfo(info, bundleID: "example.app", platform: "iPhoneOS")

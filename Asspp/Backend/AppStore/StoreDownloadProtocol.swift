@@ -42,10 +42,15 @@ enum StoreDownloadProtocol {
     }
 
     static func validatePackageInfo(_ info: [String: Any], bundleID: String, platform: String) throws {
-        let platforms = info["CFBundleSupportedPlatforms"] as? [String] ?? []
-        let platformName = info["DTPlatformName"] as? String ?? ""
-        guard info["CFBundleIdentifier"] as? String == bundleID,
-              platforms.contains(platform) || platformName.lowercased() == platform.lowercased()
+        guard info["CFBundleIdentifier"] as? String == bundleID else { throw StoreDownloadError.invalidPackage }
+        if let declaration = info["CFBundleSupportedPlatforms"] {
+            guard let platforms = declaration as? [String], platforms.contains(platform) else { throw StoreDownloadError.invalidPackage }
+            return
+        }
+        // Match ipatool's legacy iOS exception only when the declaration is
+        // absent. Empty or conflicting declarations must not pass validation.
+        let platformName = (info["DTPlatformName"] as? String ?? "").lowercased()
+        guard platform == "iPhoneOS", platformName.isEmpty || ["ios", "iphoneos"].contains(platformName)
         else { throw StoreDownloadError.invalidPackage }
     }
 

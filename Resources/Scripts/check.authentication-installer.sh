@@ -21,6 +21,7 @@ if [ "$(uname -s)" = Darwin ]; then
     /usr/bin/python3 Resources/Tests/LocalizationChecks.py \
         Asspp/Backend/AppStore/StoreAuthenticationProtocol.swift \
         Asspp/Backend/AppStore/StoreAuthenticator.swift \
+        Asspp/Backend/StoreRuntime/StoreRuntime.swift \
         Asspp/Backend/Installer/InstallationProtocol.swift \
         Asspp/Interface/Download/ImportIPAView.swift \
         Asspp/Interface/Download/InstallerView.swift
