@@ -1,6 +1,9 @@
 import Foundation
 import Observation
 import WebKit
+#if os(iOS)
+import UIKit
+#endif
 
 /// An isolated, bundled page runs the same interpreter as the browser client.
 /// It never loads remote scripts or serves an authentication HTTP endpoint.
@@ -12,6 +15,10 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     private var webView: WKWebView?
     private var ready = false
     private var starting = false
+    private var startupTimer: Task<Void, Never>?
+    private var startupStep = "page"
+    private var lastFailure: StoreRuntimeError?
+    private var assetReads = 0
     private var waiters: [CheckedContinuation<Void, Error>] = []
     private let sockets = StoreRuntimeSockets()
 
@@ -40,12 +47,10 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         } catch {
             // WKError descriptions can retain evaluated arguments. Do not log
             // or propagate their userInfo, scripts, request bodies or URLs.
-            ready = false
-            stage = ""
-            webView.configuration.userContentController.removeScriptMessageHandler(forName: "storeRuntime")
-            self.webView = nil
+            let failure = lastFailure ?? .startup("javascript-\((error as NSError).domain == WKError.errorDomain ? (error as NSError).code : 0)")
+            fail(failure)
             await sockets.closeAll()
-            throw StoreRuntimeError.unavailable
+            throw failure
         }
     }
 
@@ -55,23 +60,45 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             waiters.append(continuation)
             guard !starting else { return }
             starting = true
-            guard let directory else { finish(StoreRuntimeError.unavailable); return }
+            lastFailure = nil
+            startupStep = "page"
+            assetReads = 0
+            guard let directory else { fail(.startup("bundle-missing")); return }
             let configuration = WKWebViewConfiguration()
             configuration.websiteDataStore = .nonPersistent()
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
             configuration.userContentController.add(self, name: "storeRuntime")
-            let view = WKWebView(frame: .zero, configuration: configuration)
+            let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 1, height: 1), configuration: configuration)
             view.navigationDelegate = self
             webView = view
+            #if os(iOS)
+            // An unattached iOS WKWebView may suspend the timers used by Go's
+            // scheduler. Keep a transparent, noninteractive view in the active
+            // window for the lifetime of the interpreter; no private WebKit APIs.
+            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            guard let window = scenes.filter({ $0.activationState == .foregroundActive })
+                .flatMap(\.windows).first(where: \.isKeyWindow)
+                ?? UIApplication.shared.windows.first(where: \.isKeyWindow)
+            else { fail(.startup("window-unavailable")); return }
+            view.isOpaque = false
+            view.backgroundColor = .clear
+            view.scrollView.backgroundColor = .clear
+            view.isUserInteractionEnabled = false
+            view.accessibilityElementsHidden = true
+            window.addSubview(view)
+            #endif
             view.loadFileURL(directory.appendingPathComponent("index.html"), allowingReadAccessTo: directory)
-            Task { [weak self] in
+            startupTimer = Task { [weak self, weak view] in
                 try? await Task.sleep(for: .seconds(60))
-                if let self, !self.ready { self.finish(StoreRuntimeError.unavailable) }
+                guard !Task.isCancelled, let self, let view, self.webView === view, self.starting else { return }
+                self.fail(.startup("timeout-" + self.startupStep))
             }
         }
     }
 
     private func finish(_ error: Error? = nil) {
+        startupTimer?.cancel()
+        startupTimer = nil
         starting = false
         ready = error == nil
         let current = waiters
@@ -82,20 +109,40 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         }
     }
 
+    private func fail(_ error: StoreRuntimeError) {
+        lastFailure = error
+        stage = ""
+        webView?.stopLoading()
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "storeRuntime")
+        webView?.removeFromSuperview()
+        webView = nil
+        finish(error)
+        Task { await sockets.closeAll() }
+    }
+
+    private func trustedPage(_ url: URL) -> Bool {
+        guard url.isFileURL, let directory else { return false }
+        // iOS may report /var/... for a bundle addressed through /private/var/....
+        return url.resolvingSymlinksInPath().standardizedFileURL.path
+            == directory.appendingPathComponent("index.html").resolvingSymlinksInPath().standardizedFileURL.path
+    }
+
     func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.frameInfo.isMainFrame,
-              let frameURL = message.frameInfo.request.url, frameURL.isFileURL,
-              let directory, frameURL.standardizedFileURL.path.hasPrefix(directory.standardizedFileURL.path + "/"),
+        guard message.webView === webView, message.frameInfo.isMainFrame,
+              let frameURL = message.frameInfo.request.url, trustedPage(frameURL),
               let body = message.body as? [String: Any], let id = body["id"] as? Int,
               let method = body["method"] as? String,
               let payload = body["payload"] as? [String: Any]
         else { return }
-        Task { [weak self] in
-            guard let self else { return }
+        let sender = message.webView
+        Task { [weak self, weak sender] in
+            guard let self, let sender, self.webView === sender else { return }
             do {
                 let value = try await handle(method, payload: payload)
+                guard self.webView === sender else { return }
                 await reply(id, value: value)
             } catch {
+                guard self.webView === sender else { return }
                 await reply(id, error: true)
             }
         }
@@ -112,14 +159,17 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     private func handle(_ method: String, payload: [String: Any]) async throws -> Any {
         switch method {
         case "ready": finish(); return NSNull()
-        case "initializationFailed": finish(StoreRuntimeError.unavailable); return NSNull()
+        case "initializationFailed": fail(.startup("initialization-" + startupStep)); return NSNull()
         case "progress": stage = payload["stage"] as? String ?? ""; return NSNull()
         case "runtimeBinary":
+            startupStep = "wasm"
             guard let file = directory?.appendingPathComponent("runtime.wasm"),
                   let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 40 * 1024 * 1024
             else { throw StoreRuntimeError.unavailable }
             return try Data(contentsOf: file, options: .mappedIfSafe).base64EncodedString()
         case "readAsset":
+            assetReads += 1
+            startupStep = "asset-\(min(assetReads, 7))"
             guard let name = payload["name"] as? String else { throw StoreRuntimeError.unavailable }
             if let data = try StoreRuntimeAssets.read(name) { return data.base64EncodedString() }
             return NSNull()
@@ -150,37 +200,43 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
 
     func webView(_: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        guard let url = navigationAction.request.url, url.isFileURL, let directory,
-              url.standardizedFileURL.path.hasPrefix(directory.standardizedFileURL.path + "/")
+        guard let url = navigationAction.request.url, trustedPage(url)
         else { decisionHandler(.cancel); return }
         decisionHandler(.allow)
     }
 
     func webView(_: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError _: Error) {
-        finish(StoreRuntimeError.unavailable)
+        fail(.startup("navigation"))
     }
 
     func webViewWebContentProcessDidTerminate(_: WKWebView) {
-        ready = false
-        stage = ""
-        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "storeRuntime")
-        webView = nil
-        finish(StoreRuntimeError.unavailable)
-        Task { await sockets.closeAll() }
+        fail(.startup("webcontent-terminated"))
     }
 }
 
 enum StoreRuntimeError: LocalizedError {
     case unavailable
+    case startup(String)
     case operation(String, Int)
 
     var errorDescription: String? {
         switch self {
         case .unavailable:
             String(localized: "Apple authentication could not start. Check your connection and try again.")
+        case let .startup(code):
+            String(localized: "Apple authentication could not start. Check your connection and try again.")
+                + " (runtime: \(code))"
         case let .operation(code, status):
             String(localized: "Apple could not complete the request. Try signing in again.")
                 + (status > 0 ? " (HTTP \(status))" : " (\(code))")
+        }
+    }
+
+    var diagnostic: String {
+        switch self {
+        case .unavailable: "unavailable"
+        case let .startup(code): code
+        case let .operation(code, status): "\(code) http=\(status)"
         }
     }
 }

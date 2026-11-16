@@ -29,7 +29,12 @@ struct StoreRuntimeSmoke {
                     guard let data = output.data(using: .utf8),
                           let result = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                           result["ok"] as? Bool == true
-                    else { fatalError("Bundled interpreter check failed") }
+                    else {
+                        // Only synthetic offline operations run in this executable.
+                        print("Offline guest failure: " + output)
+                        fflush(stdout)
+                        exit(1)
+                    }
                     print("WKWebView \(operation) passed")
                 }
                 print("Asspp runtime checks passed")
@@ -37,7 +42,8 @@ struct StoreRuntimeSmoke {
                 exit(0)
             } catch {
                 // Synthetic, offline requests only; never retain WKError payloads.
-                fputs("Bundled WKWebView interpreter check failed\n", stderr)
+                let code = (error as? StoreRuntimeError)?.diagnostic ?? "unavailable"
+                fputs("Bundled WKWebView interpreter check failed: \(code)\n", stderr)
                 exit(1)
             }
         }
