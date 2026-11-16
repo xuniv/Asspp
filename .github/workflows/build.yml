@@ -1,5 +1,6 @@
 name: Build App
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -38,6 +39,7 @@ jobs:
           retention-days: 3
           if-no-files-found: error
   build:
+    if: github.event_name != 'workflow_dispatch'
     needs: runtime
     runs-on: macos-26
     strategy:
@@ -81,3 +83,20 @@ jobs:
             ${{ runner.temp }}/Asspp-AltStore.ipa
             ${{ runner.temp }}/Asspp.zip
           if-no-files-found: error
+  ios-runtime:
+    if: github.event_name == 'workflow_dispatch'
+    needs: runtime
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Asspp-client-runtime
+          path: StoreRuntime.bundle
+      - name: Select stable Xcode
+        run: bash Resources/Scripts/select.xcode.sh
+      - name: Check the bundled interpreter in an iOS simulator
+        run: bash Resources/Scripts/check.store.runtime.ios.sh

@@ -1,12 +1,26 @@
-import AppKit
 import Foundation
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 
 @main
 struct StoreRuntimeSmoke {
     @MainActor
     static func main() {
+        #if os(iOS)
+        UIApplicationMain(CommandLine.argc, CommandLine.unsafeArgv, nil, NSStringFromClass(StoreRuntimeSmokeDelegate.self))
+        #else
         let app = NSApplication.shared
         app.setActivationPolicy(.prohibited)
+        run()
+        app.run()
+        #endif
+    }
+
+    @MainActor
+    static func run() {
         Task { @MainActor in
             do {
                 for operation in ["preflight", "adi-preflight", "framework-preflight"] {
@@ -18,6 +32,8 @@ struct StoreRuntimeSmoke {
                     else { fatalError("Bundled interpreter check failed") }
                     print("WKWebView \(operation) passed")
                 }
+                print("Asspp runtime checks passed")
+                fflush(stdout)
                 exit(0)
             } catch {
                 // Synthetic, offline requests only; never retain WKError payloads.
@@ -25,6 +41,20 @@ struct StoreRuntimeSmoke {
                 exit(1)
             }
         }
-        app.run()
     }
 }
+
+#if os(iOS)
+@MainActor
+final class StoreRuntimeSmokeDelegate: NSObject, UIApplicationDelegate {
+    var window: UIWindow?
+    func application(_: UIApplication, didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        window.rootViewController = UIViewController()
+        window.makeKeyAndVisible()
+        self.window = window
+        StoreRuntimeSmoke.run()
+        return true
+    }
+}
+#endif
