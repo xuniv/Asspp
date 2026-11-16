@@ -41,7 +41,7 @@ jobs:
   build:
     if: github.event_name != 'workflow_dispatch'
     needs: runtime
-    runs-on: macos-26
+    runs-on: macos-26-intel
     strategy:
       fail-fast: false
       matrix:
@@ -85,7 +85,7 @@ jobs:
           if-no-files-found: error
   ios-runtime:
     needs: runtime
-    runs-on: macos-26
+    runs-on: macos-26-intel
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
