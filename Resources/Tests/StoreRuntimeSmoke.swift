@@ -7,6 +7,17 @@ import AppKit
 
 @main
 struct StoreRuntimeSmoke {
+    static var resultURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("runtime-smoke-result.txt")
+    }
+
+    static func record(_ value: String) {
+        // Synthetic check status only: never account/provisioning data.
+        try? FileManager.default.createDirectory(at: resultURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data(value.utf8).write(to: resultURL, options: .atomic)
+    }
+
     @MainActor
     static func main() {
         #if os(iOS)
@@ -28,6 +39,7 @@ struct StoreRuntimeSmoke {
                     operations += ["network-preflight", "sap-test", "anisette-preflight"]
                 }
                 for operation in operations {
+                    record("running:" + operation)
                     print("WKWebView \(operation) starting")
                     fflush(stdout)
                     let input = try JSONSerialization.data(withJSONObject: ["operation": operation, "deviceID": "020000000001"])
@@ -38,6 +50,7 @@ struct StoreRuntimeSmoke {
                     else {
                         // Only synthetic offline operations run in this executable.
                         print("Offline guest failure: " + output)
+                        record("failed:guest")
                         fflush(stdout)
                         exit(1)
                     }
@@ -45,11 +58,13 @@ struct StoreRuntimeSmoke {
                     fflush(stdout)
                 }
                 print("Asspp runtime checks passed")
+                record("passed")
                 fflush(stdout)
                 exit(0)
             } catch {
                 // Synthetic, offline requests only; never retain WKError payloads.
                 let code = (error as? StoreRuntimeError)?.diagnostic ?? "unavailable"
+                record("failed:" + code)
                 fputs("Bundled WKWebView interpreter check failed: \(code)\n", stderr)
                 exit(1)
             }
@@ -60,14 +75,37 @@ struct StoreRuntimeSmoke {
 #if os(iOS)
 @MainActor
 final class StoreRuntimeSmokeDelegate: NSObject, UIApplicationDelegate {
-    var window: UIWindow?
     func application(_: UIApplication, didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        let window = UIWindow(frame: UIScreen.main.bounds)
+        StoreRuntimeSmoke.record("starting")
+        return true
+    }
+
+    func application(_: UIApplication, configurationForConnecting session: UISceneSession,
+                     options _: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let configuration = UISceneConfiguration(name: "RuntimeCheck", sessionRole: session.role)
+        configuration.delegateClass = StoreRuntimeSmokeSceneDelegate.self
+        return configuration
+    }
+}
+
+@MainActor
+final class StoreRuntimeSmokeSceneDelegate: NSObject, UIWindowSceneDelegate {
+    var window: UIWindow?
+    private var started = false
+
+    func scene(_ scene: UIScene, willConnectTo _: UISceneSession, options _: UIScene.ConnectionOptions) {
+        guard let scene = scene as? UIWindowScene else { return }
+        StoreRuntimeSmoke.record("scene-connected")
+        let window = UIWindow(windowScene: scene)
         window.rootViewController = UIViewController()
         window.makeKeyAndVisible()
         self.window = window
+    }
+
+    func sceneDidBecomeActive(_: UIScene) {
+        guard !started else { return }
+        started = true
         StoreRuntimeSmoke.run()
-        return true
     }
 }
 #endif
