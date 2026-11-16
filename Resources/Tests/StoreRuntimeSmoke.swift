@@ -23,9 +23,9 @@ struct StoreRuntimeSmoke {
     static func run() {
         Task { @MainActor in
             do {
-                var operations = ["bridge-preflight", "preflight"] + Array(repeating: "adi-preflight", count: 3) + ["framework-preflight"]
+                var operations = ["bridge-preflight", "memory-preflight", "preflight"] + Array(repeating: "adi-preflight", count: 3) + ["framework-preflight"]
                 if ProcessInfo.processInfo.environment["ASS_RUNTIME_LIVE_APPLE"] == "1" {
-                    operations += ["network-preflight", "sap-test"]
+                    operations += ["network-preflight", "sap-test", "anisette-preflight"]
                 }
                 for operation in operations {
                     print("WKWebView \(operation) starting")

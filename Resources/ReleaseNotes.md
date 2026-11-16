@@ -1,7 +1,7 @@
-Fix authentication startup failures in the client interpreter. Newly mapped guest memory is explicitly zero-filled, matching native Unicorn and preventing recycled data from corrupting FairPlay/ADI initialization. Repeated calls to the same host function now invoke its callback every time.
+Reduce client interpreter memory pressure that could terminate WebContent on an iPhone or reload a browser tab.
 
-Reduce native asset-decoding memory by removing large intermediate arrays and redundant public-image copies. Keep the iOS interpreter attached to the active window, normalize bundle-path aliases, and cancel stale startup timers. Startup errors and retained logs now distinguish process termination, navigation and timeout stages without including account data.
+Public Apple images now stream through bounded 64 KiB reads directly into the hash-verifying Go loader. The app transfers the runtime binary in bounded chunks too. Reuse Go/JS staging buffers, release callback registrations when guests close, and collect external JS references at operation boundaries. Guest code pages use exact-content sharing with copy-on-write isolation. SAP no longer crosses into JavaScript merely to count every instruction.
 
-Release checks include repeated ADI initialization, synthetic callback/memory regressions and a real iOS-simulator WKWebView run. Separate public-network checks exercise verified Apple TLS and SAP signing without an Apple account. Account login and physical-device installation still require device verification.
+Tests now measure peak WebContent RSS as well as WASM linear memory, and cover cross-guest host/CPU write isolation, zero-filled recycled RAM, repeated ADI initialization and actual SAP signing. The optional public-network probe exercises full Anisette provisioning without an Apple ID and discards all generated proofs and state. Real account login and physical-device installation still require device verification.
 
-Asspp.ipa and the English-only Asspp-AltStore.ipa are unsigned. The AltStore source is https://xuniv.github.io/alt/source.json. OTA installation requires the local CA profile and full trust in iOS Settings.
+Asspp.ipa and the English-only Asspp-AltStore.ipa are unsigned. The AltStore source is https://xuniv.github.io/alt/source.json. Existing OTA installation certificate trust requirements are unchanged.

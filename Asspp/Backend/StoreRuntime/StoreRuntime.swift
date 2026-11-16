@@ -18,7 +18,9 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     private var startupTimer: Task<Void, Never>?
     private var startupStep = "page"
     private var lastFailure: StoreRuntimeError?
-    private var assetReads = 0
+    private var nextAsset = 1
+    private var assetData: [Int: Data] = [:]
+    private var binary: FileHandle?
     private var waiters: [CheckedContinuation<Void, Error>] = []
     private let sockets = StoreRuntimeSockets()
 
@@ -62,7 +64,6 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
             starting = true
             lastFailure = nil
             startupStep = "page"
-            assetReads = 0
             guard let directory else { fail(.startup("bundle-missing")); return }
             let configuration = WKWebViewConfiguration()
             configuration.websiteDataStore = .nonPersistent()
@@ -112,6 +113,9 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
     private func fail(_ error: StoreRuntimeError) {
         lastFailure = error
         stage = ""
+        assetData.removeAll()
+        try? binary?.close()
+        binary = nil
         webView?.stopLoading()
         webView?.configuration.userContentController.removeScriptMessageHandler(forName: "storeRuntime")
         webView?.removeFromSuperview()
@@ -160,24 +164,42 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         switch method {
         case "ready": finish(); return NSNull()
         case "initializationFailed": fail(.startup("initialization-" + startupStep)); return NSNull()
-        case "progress": stage = payload["stage"] as? String ?? ""; return NSNull()
-        case "runtimeBinary":
+        case "progress":
+            stage = payload["stage"] as? String ?? ""
+            if let phase = payload["phase"] as? String,
+               ["engine", "wasm", "assets", "request", "guest", "anisette"].contains(phase) { startupStep = phase }
+            return NSNull()
+        case "binarySize":
             startupStep = "wasm"
             guard let file = directory?.appendingPathComponent("runtime.wasm"),
                   let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 40 * 1024 * 1024
             else { throw StoreRuntimeError.unavailable }
-            return try Data(contentsOf: file, options: .mappedIfSafe).base64EncodedString()
-        case "readAsset":
-            assetReads += 1
-            startupStep = "asset-\(min(assetReads, 7))"
-            guard let name = payload["name"] as? String else { throw StoreRuntimeError.unavailable }
-            if let data = try StoreRuntimeAssets.read(name) { return data.base64EncodedString() }
-            return NSNull()
-        case "writeAsset":
-            guard let name = payload["name"] as? String, let encoded = payload["data"] as? String,
-                  encoded.utf8.count <= 44 * 1024 * 1024, let data = Data(base64Encoded: encoded)
+            try? binary?.close()
+            binary = try FileHandle(forReadingFrom: file)
+            return ["size": size]
+        case "binaryRead":
+            guard let binary, let offset = payload["offset"] as? Int, let count = payload["count"] as? Int,
+                  offset >= 0, (1 ... 65536).contains(count), offset <= 40 * 1024 * 1024 - count
             else { throw StoreRuntimeError.unavailable }
-            try StoreRuntimeAssets.write(name, data: data)
+            try binary.seek(toOffset: UInt64(offset))
+            return try binary.read(upToCount: count)?.base64EncodedString() ?? ""
+        case "assetOpen":
+            startupStep = "assets"
+            guard let name = payload["name"] as? String, assetData.count < 2,
+                  let data = try StoreRuntimeAssets.read(name) else { throw StoreRuntimeError.unavailable }
+            let id = nextAsset
+            nextAsset += 1
+            assetData[id] = data
+            return ["id": id, "size": data.count]
+        case "assetRead":
+            guard let id = payload["id"] as? Int, let data = assetData[id],
+                  let offset = payload["offset"] as? Int, let count = payload["count"] as? Int,
+                  offset >= 0, offset <= data.count, (1 ... 65536).contains(count)
+            else { throw StoreRuntimeError.unavailable }
+            return data.subdata(in: offset ..< min(offset + count, data.count)).base64EncodedString()
+        case "assetClose":
+            guard let id = payload["id"] as? Int else { throw StoreRuntimeError.unavailable }
+            assetData.removeValue(forKey: id)
             return NSNull()
         case "socketOpen":
             guard let host = payload["host"] as? String, payload["port"] as? Int == 443 else { throw StoreRuntimeError.unavailable }
@@ -217,7 +239,7 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
 
     func webViewWebContentProcessDidTerminate(_ view: WKWebView) {
         guard view === webView else { return }
-        fail(.startup("webcontent-terminated"))
+        fail(.startup("webcontent-terminated-" + startupStep))
     }
 }
 
