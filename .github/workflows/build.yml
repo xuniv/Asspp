@@ -84,7 +84,6 @@ jobs:
             ${{ runner.temp }}/Asspp.zip
           if-no-files-found: error
   ios-runtime:
-    if: github.event_name == 'workflow_dispatch'
     needs: runtime
     runs-on: macos-26
     timeout-minutes: 20
@@ -99,4 +98,6 @@ jobs:
       - name: Select stable Xcode
         run: bash Resources/Scripts/select.xcode.sh
       - name: Check the bundled interpreter in an iOS simulator
+        env:
+          SIMCTL_CHILD_ASS_RUNTIME_LIVE_APPLE: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
         run: bash Resources/Scripts/check.store.runtime.ios.sh

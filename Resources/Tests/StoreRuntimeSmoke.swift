@@ -23,7 +23,13 @@ struct StoreRuntimeSmoke {
     static func run() {
         Task { @MainActor in
             do {
-                for operation in ["preflight", "adi-preflight", "framework-preflight"] {
+                var operations = ["bridge-preflight", "preflight"] + Array(repeating: "adi-preflight", count: 3) + ["framework-preflight"]
+                if ProcessInfo.processInfo.environment["ASS_RUNTIME_LIVE_APPLE"] == "1" {
+                    operations += ["network-preflight", "sap-test"]
+                }
+                for operation in operations {
+                    print("WKWebView \(operation) starting")
+                    fflush(stdout)
                     let input = try JSONSerialization.data(withJSONObject: ["operation": operation, "deviceID": "020000000001"])
                     let output = try await StoreRuntime.shared.run(String(decoding: input, as: UTF8.self))
                     guard let data = output.data(using: .utf8),
@@ -36,6 +42,7 @@ struct StoreRuntimeSmoke {
                         exit(1)
                     }
                     print("WKWebView \(operation) passed")
+                    fflush(stdout)
                 }
                 print("Asspp runtime checks passed")
                 fflush(stdout)

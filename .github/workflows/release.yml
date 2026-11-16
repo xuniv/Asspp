@@ -87,7 +87,7 @@ jobs:
             ${{ runner.temp }}/Asspp.zip
           if-no-files-found: error
   publish:
-    needs: build
+    needs: [build, ios-runtime]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -107,6 +107,23 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             release/Asspp.ipa release/Asspp-AltStore.ipa release/Asspp.zip --verify-tag \
             --title "$GITHUB_REF_NAME" --notes-file Resources/ReleaseNotes.md
+  ios-runtime:
+    if: github.event_name == 'push'
+    needs: runtime
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Asspp-client-runtime
+          path: StoreRuntime.bundle
+      - name: Select stable Xcode
+        run: bash Resources/Scripts/select.xcode.sh
+      - name: Check the bundled interpreter in an iOS simulator
+        run: bash Resources/Scripts/check.store.runtime.ios.sh
   source-package:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: macos-26

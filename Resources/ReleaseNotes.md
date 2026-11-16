@@ -1,7 +1,7 @@
-Run Apple authentication and Store downloads locally with the modern ipatool ARM64 runtime, including SAP, Anisette, Store AMD and KBSync. The sideloaded app needs no hosted authentication server or JIT entitlement. Public Apple images are packaged as verified compressed data to reduce first-run memory use.
+Fix authentication startup failures in the client interpreter. Newly mapped guest memory is explicitly zero-filled, matching native Unicorn and preventing recycled data from corrupting FairPlay/ADI initialization. Repeated calls to the same host function now invoke its callback every time.
 
-Login, license acquisition, downloads and version lookups now share the same protocol engine. Sign in to existing accounts again once after upgrading. Preserve explicit authentication/license errors and accept legacy iOS packages that omit platform declarations.
+Reduce native asset-decoding memory by removing large intermediate arrays and redundant public-image copies. Keep the iOS interpreter attached to the active window, normalize bundle-path aliases, and cancel stale startup timers. Startup errors and retained logs now distinguish process termination, navigation and timeout stages without including account data.
 
-The release includes Asspp.ipa and an English-only Asspp-AltStore.ipa for the gated AltStore source at https://xuniv.github.io/alt/source.json. Both are unsigned and must be signed when sideloading. OTA installation still requires installing the local CA profile and enabling full trust in iOS Settings.
+Release checks include repeated ADI initialization, synthetic callback/memory regressions and a real iOS-simulator WKWebView run. Separate public-network checks exercise verified Apple TLS and SAP signing without an Apple account. Account login and physical-device installation still require device verification.
 
-Validation includes Chromium/WebKit interpreter checks, a native WKWebView smoke check, installer/certificate regressions, unsigned iOS/macOS builds and release privacy checks. Live account login and physical-device installation require device verification.
+Asspp.ipa and the English-only Asspp-AltStore.ipa are unsigned. The AltStore source is https://xuniv.github.io/alt/source.json. OTA installation requires the local CA profile and full trust in iOS Settings.

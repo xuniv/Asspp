@@ -205,11 +205,18 @@ final class StoreRuntime: NSObject, WKScriptMessageHandler, WKNavigationDelegate
         decisionHandler(.allow)
     }
 
-    func webView(_: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError _: Error) {
+    func webView(_ view: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError _: Error) {
+        guard view === webView else { return }
         fail(.startup("navigation"))
     }
 
-    func webViewWebContentProcessDidTerminate(_: WKWebView) {
+    func webView(_ view: WKWebView, didFail _: WKNavigation!, withError _: Error) {
+        guard view === webView else { return }
+        fail(.startup("navigation"))
+    }
+
+    func webViewWebContentProcessDidTerminate(_ view: WKWebView) {
+        guard view === webView else { return }
         fail(.startup("webcontent-terminated"))
     }
 }
