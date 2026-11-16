@@ -2,7 +2,7 @@
 set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
 # Updated only after the shared client runtime passes its browser checks.
-revision=bac64aefe3793f3622f7e4aa4b268002562cd3dd
+revision=78fa38dd41bb0e9878571c0072c7900afb3f8488
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/source"
