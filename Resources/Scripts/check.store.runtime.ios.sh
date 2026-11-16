@@ -23,15 +23,35 @@ swiftc -parse-as-library -swift-version 5 \
     "$root/Resources/Tests/StoreRuntimeSmoke.swift" \
     -o "$app/StoreRuntimeSmoke"
 codesign --force --sign - "$app"
-runtime="$(xcrun simctl list runtimes --json | python3 -c 'import json,sys; print(next(r["identifier"] for r in reversed(json.load(sys.stdin)["runtimes"]) if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")))')"
-device="$(xcrun simctl create AssppRuntimeCheck com.apple.CoreSimulator.SimDeviceType.iPhone-16 "$runtime")"
+runtime="$(xcrun simctl list runtimes --json | python3 -c 'import json,re,sys; choices=[r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")]; print(max(choices,key=lambda r:tuple(map(int,re.findall(r"\d+",r["version"]))))["identifier"])')"
+device_type="$(xcrun simctl list devicetypes --json | python3 -c 'import json,sys; types={r["identifier"] for r in json.load(sys.stdin)["devicetypes"]}; print(next(t for t in ["com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max","com.apple.CoreSimulator.SimDeviceType.iPhone-16"] if t in types))')"
+device="$(xcrun simctl create AssppRuntimeCheck "$device_type" "$runtime")"
+echo "Booting $device_type with $runtime"
 xcrun simctl boot "$device"
-xcrun simctl bootstatus "$device" -b
-xcrun simctl install "$device" "$app"
 python3 - "$device" <<'PY'
 import subprocess,sys
-result = subprocess.run(['xcrun','simctl','launch','--terminate-running-process','--console-pty',sys.argv[1],'example.asspp.runtime-check'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=480)
-print(result.stdout)
-if 'Asspp runtime checks passed' not in result.stdout:
+subprocess.run(['xcrun','simctl','bootstatus',sys.argv[1],'-b'],check=True,timeout=240)
+PY
+xcrun simctl install "$device" "$app"
+echo 'Starting the bundled WKWebView checks'
+python3 - "$device" <<'PY'
+import subprocess,sys,threading
+process = subprocess.Popen(['xcrun','simctl','launch','--terminate-running-process','--console-pty',sys.argv[1],'example.asspp.runtime-check'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+lines = []
+def report():
+    for line in process.stdout:
+        print(line,end='',flush=True)
+        lines.append(line)
+reader = threading.Thread(target=report,daemon=True)
+reader.start()
+try:
+    process.wait(timeout=720)
+except subprocess.TimeoutExpired:
+    process.kill()
+    process.wait()
+    reader.join(timeout=5)
+    raise SystemExit('iOS WKWebView runtime check timed out')
+reader.join(timeout=5)
+if 'Asspp runtime checks passed' not in ''.join(lines):
     raise SystemExit('iOS WKWebView runtime check failed')
 PY

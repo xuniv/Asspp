@@ -110,7 +110,7 @@ jobs:
   ios-runtime:
     if: github.event_name == 'push'
     needs: runtime
-    runs-on: macos-26-intel
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
