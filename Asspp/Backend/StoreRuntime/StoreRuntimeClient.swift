@@ -77,7 +77,7 @@ enum ModernStore {
         let parts = name.split(separator: " ", maxSplits: 1).map(String.init)
         let store = (value["storeFront"] as? String)?.split(separator: "-").first.map(String.init) ?? previous?.store ?? ""
         guard !store.isEmpty else { throw StoreRuntimeError.unavailable }
-        return Account(email: email, password: password, appleId: email, store: store,
+        return Account(email: email, password: password, appleId: value["email"] as? String ?? email, store: store,
                        firstName: parts.first ?? previous?.firstName ?? "",
                        lastName: parts.dropFirst().first ?? previous?.lastName ?? "",
                        passwordToken: token, directoryServicesIdentifier: dsid,
