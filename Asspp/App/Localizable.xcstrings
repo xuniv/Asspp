@@ -3491,6 +3491,1046 @@
           }
         }
       }
+    },
+    "A matching model is available." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A matching model is available."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有可匹配的模型。"
+          }
+        }
+      }
+    },
+    "Choose a regular IPA file no larger than 8 GiB." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a regular IPA file no larger than 8 GiB."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择不超过 8 GiB 的普通 IPA 文件。"
+          }
+        }
+      }
+    },
+    "Contained models" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contained models"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含的模型"
+          }
+        }
+      }
+    },
+    "Convert Encrypted IPA for macOS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convert Encrypted IPA for macOS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转换加密 IPA 以用于 macOS"
+          }
+        }
+      }
+    },
+    "Decrypt IPA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrypt IPA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解密 IPA"
+          }
+        }
+      }
+    },
+    "Decrypt IPA (Strip Account Data)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrypt IPA (Strip Account Data)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解密 IPA（移除账户数据）"
+          }
+        }
+      }
+    },
+    "Decrypted IPA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrypted IPA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解密 IPA"
+          }
+        }
+      }
+    },
+    "Decrypted IPA (Account Data Stripped)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrypted IPA (Account Data Stripped)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解密 IPA（已移除账户数据）"
+          }
+        }
+      }
+    },
+    "Decrypted IPAs require re-signing before installation. Asspp does not re-sign this copy." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrypted IPAs require re-signing before installation. Asspp does not re-sign this copy."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解密的 IPA 需要重新签名后才能安装。Asspp 不会为此副本重新签名。"
+          }
+        }
+      }
+    },
+    "Decrypted pages" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrypted pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解密页数"
+          }
+        }
+      }
+    },
+    "Decryption succeeded." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decryption succeeded."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解密成功。"
+          }
+        }
+      }
+    },
+    "Delete Model" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Model"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除模型"
+          }
+        }
+      }
+    },
+    "Delete Processed Copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Processed Copy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除处理后的副本"
+          }
+        }
+      }
+    },
+    "Encrypted IPA for macOS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted IPA for macOS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于 macOS 的加密 IPA"
+          }
+        }
+      }
+    },
+    "Encrypted images" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted images"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加密映像数"
+          }
+        }
+      }
+    },
+    "FairPlay Models" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FairPlay Models"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FairPlay 模型"
+          }
+        }
+      }
+    },
+    "Format versions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format versions"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "格式版本"
+          }
+        }
+      }
+    },
+    "IPA with Account Data Stripped" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IPA with Account Data Stripped"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已移除账户数据的 IPA"
+          }
+        }
+      }
+    },
+    "Import .bin Models" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import .bin Models"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入 .bin 模型"
+          }
+        }
+      }
+    },
+    "Import a matching FairPlay model first." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import a matching FairPlay model first."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先导入匹配的 FairPlay 模型。"
+          }
+        }
+      }
+    },
+    "Import checks the model format. IPA operations authenticate the exact matching enrollment; other models are never tried as a fallback." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import checks the model format. IPA operations authenticate the exact matching enrollment; other models are never tried as a fallback."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入时会检查模型格式。IPA 操作会验证精确匹配的注册信息，不会使用其他模型作为后备。"
+          }
+        }
+      }
+    },
+    "Import private .bin models recovered on your Mac. Matching models are selected automatically for each IPA. Operations preserve the original and create separate temporary copies." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import private .bin models recovered on your Mac. Matching models are selected automatically for each IPA. Operations preserve the original and create separate temporary copies."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入在 Mac 上恢复的私有 .bin 模型。每个 IPA 都会自动选择匹配的模型。操作会保留原文件，并创建独立的临时副本。"
+          }
+        }
+      }
+    },
+    "Inspect IPA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspect IPA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查 IPA"
+          }
+        }
+      }
+    },
+    "Inspection completed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspection completed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查完成。"
+          }
+        }
+      }
+    },
+    "Model File" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model File"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型文件"
+          }
+        }
+      }
+    },
+    "Models stay in this device’s private Keychain and are not synchronized. Import multi.bin or multiple supported model files." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Models stay in this device’s private Keychain and are not synchronized. Import multi.bin or multiple supported model files."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型保存在本设备的私有钥匙串中，不会同步。可导入 multi.bin 或多个受支持的模型文件。"
+          }
+        }
+      }
+    },
+    "More Operations" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More Operations"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多操作"
+          }
+        }
+      }
+    },
+    "No matching model is available." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching model is available."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可匹配的模型。"
+          }
+        }
+      }
+    },
+    "No models imported." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No models imported."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未导入模型。"
+          }
+        }
+      }
+    },
+    "Plaintext hash coverage is unavailable for one or more images. Decryption success does not mean the plaintext was fully verified." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plaintext hash coverage is unavailable for one or more images. Decryption success does not mean the plaintext was fully verified."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一个或多个映像缺少明文哈希校验数据。解密成功并不代表明文已通过完整验证。"
+          }
+        }
+      }
+    },
+    "Plaintext hashes match for every decrypted image." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plaintext hashes match for every decrypted image."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有已解密映像的明文哈希均匹配。"
+          }
+        }
+      }
+    },
+    "Private models could not be accessed. Unlock your device and try again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private models could not be accessed. Unlock your device and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法访问私有模型。请解锁设备后重试。"
+          }
+        }
+      }
+    },
+    "Processed IPA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processed IPA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "处理后的 IPA"
+          }
+        }
+      }
+    },
+    "Processed copies are removed after 24 hours or when Asspp restarts. Deleting this copy does not change the original IPA or saved models." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processed copies are removed after 24 hours or when Asspp restarts. Deleting this copy does not change the original IPA or saved models."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "处理后的副本会在 24 小时后或 Asspp 重新启动时删除。删除此副本不会更改原始 IPA 或已保存的模型。"
+          }
+        }
+      }
+    },
+    "Processing IPA…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing IPA…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在处理 IPA…"
+          }
+        }
+      }
+    },
+    "Removed account fields" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed account fields"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已移除的账户字段数"
+          }
+        }
+      }
+    },
+    "Removed license files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removed license files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已移除的许可文件数"
+          }
+        }
+      }
+    },
+    "Removing license data does not decrypt or re-sign an IPA." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removing license data does not decrypt or re-sign an IPA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除许可数据不会解密 IPA，也不会为其重新签名。"
+          }
+        }
+      }
+    },
+    "Retry Model Access" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry Model Access"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试访问模型"
+          }
+        }
+      }
+    },
+    "SC_Info licenses and supported account fields in iTunesMetadata.plist were removed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SC_Info licenses and supported account fields in iTunesMetadata.plist were removed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已移除 SC_Info 许可和 iTunesMetadata.plist 中受支持的账户字段。"
+          }
+        }
+      }
+    },
+    "Saved Models" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved Models"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已保存的模型"
+          }
+        }
+      }
+    },
+    "Share IPA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share IPA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享 IPA"
+          }
+        }
+      }
+    },
+    "Strip Account Data" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strip Account Data"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除账户数据"
+          }
+        }
+      }
+    },
+    "The new IPA is prepared for macOS. Its executables remain encrypted." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The new IPA is prepared for macOS. Its executables remain encrypted."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新 IPA 已完成 macOS 兼容处理，其可执行文件仍保持加密。"
+          }
+        }
+      }
+    },
+    "The operation was canceled." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The operation was canceled."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作已取消。"
+          }
+        }
+      }
+    },
+    "The output already exists. Start a new operation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The output already exists. Start a new operation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输出文件已存在。请重新开始操作。"
+          }
+        }
+      }
+    },
+    "The processed IPA exceeds the available storage limit." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The processed IPA exceeds the available storage limit."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "处理后的 IPA 超过可用存储限制。"
+          }
+        }
+      }
+    },
+    "The saved model limit has been reached." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The saved model limit has been reached."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已达到模型保存数量上限。"
+          }
+        }
+      }
+    },
+    "The selected models are already imported." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected models are already imported."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选模型已导入。"
+          }
+        }
+      }
+    },
+    "This model is unsupported or cannot be combined with the saved models." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model is unsupported or cannot be combined with the saved models."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此模型不受支持，或无法与已保存的模型共同使用。"
+          }
+        }
+      }
+    },
+    "This private compatibility output is intended for a compatible macOS installer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This private compatibility output is intended for a compatible macOS installer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此私有兼容处理结果适用于兼容的 macOS 安装器。"
+          }
+        }
+      }
+    },
+    "UnfairPlay" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UnfairPlay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UnfairPlay"
+          }
+        }
+      }
+    },
+    "UnfairPlay could not complete this operation. Check that the IPA and model belong to the same enrollment and are supported." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UnfairPlay could not complete this operation. Check that the IPA and model belong to the same enrollment and are supported."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UnfairPlay 无法完成此操作。请检查 IPA 和模型是否属于同一注册且受支持。"
+          }
+        }
+      }
+    },
+    "UnfairPlay could not read a supported IPA." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UnfairPlay could not read a supported IPA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UnfairPlay 无法读取受支持的 IPA。"
+          }
+        }
+      }
+    },
+    "Validating and saving models…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Validating and saving models…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在验证并保存模型…"
+          }
+        }
+      }
+    },
+    "Verification completed without retaining a decrypted IPA." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verification completed without retaining a decrypted IPA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证已完成，未保留已解密的 IPA。"
+          }
+        }
+      }
+    },
+    "Verify IPA" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify IPA"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证 IPA"
+          }
+        }
+      }
+    },
+    "A V1 model must be selected alone. Deselect the other models before continuing." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A V1 model must be selected alone. Deselect the other models before continuing."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "V1 模型必须单独选择。请取消选择其他模型后再继续。"
+          }
+        }
+      }
+    },
+    "Select a matching V2 model for encrypted macOS conversion. V1 and V3 models are not supported for this operation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a matching V2 model for encrypted macOS conversion. V1 and V3 models are not supported for this operation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择匹配的 V2 模型以转换用于 macOS 的加密 IPA。此操作不支持 V1 和 V3 模型。"
+          }
+        }
+      }
+    },
+    "Selected model files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected model files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已选择的模型文件"
+          }
+        }
+      }
+    },
+    "Use this model" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this model"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此模型"
+          }
+        }
+      }
+    },
+    "Selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已选择"
+          }
+        }
+      }
+    },
+    "Not selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not selected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未选择"
+          }
+        }
+      }
+    },
+    "Choose the models used by IPA operations. V2 and V3 models can be selected together. Select a V1 model alone for legacy IPAs. Encrypted macOS conversion uses only selected V2 models." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the models used by IPA operations. V2 and V3 models can be selected together. Select a V1 model alone for legacy IPAs. Encrypted macOS conversion uses only selected V2 models."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择 IPA 操作要使用的模型。V2 和 V3 模型可以同时选择。对于旧版 IPA，请单独选择一个 V1 模型。用于 macOS 的加密 IPA 转换仅使用已选择的 V2 模型。"
+          }
+        }
+      }
+    },
+    "Encrypted macOS conversion requires a matching V2 model. Only selected V2 models are used for this operation." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypted macOS conversion requires a matching V2 model. Only selected V2 models are used for this operation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于 macOS 的加密 IPA 转换需要匹配的 V2 模型。此操作仅使用已选择的 V2 模型。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

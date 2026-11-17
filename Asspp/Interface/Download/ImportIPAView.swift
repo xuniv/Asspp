@@ -47,6 +47,8 @@ struct ImportIPAView: View {
                                     catch { self.error = error.localizedDescription }
                                 }
                             }
+                            Button("Install via AirDrop") { AirDrop(items: [item.url]) }
+                            IPAShareRow(url: item.url)
                         #else
                             Button("Install") {
                                 guard let device = devices.selectedDevice else { return }
@@ -54,10 +56,12 @@ struct ImportIPAView: View {
                                     if await devices.install(ipa: item.url, to: device) == false { error = String(localized: "Device installation failed. See Settings > Logs for details.") }
                                 }
                             }.disabled(devices.selectedDevice == nil || devices.installingProcess != nil)
+                            IPAShareRow(url: item.url)
                             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
                         #endif
                         Button("Delete", role: .destructive) { store.remove(item) }
                     }
+                    UnfairPlaySection(inputURL: item.url, package: item.package)
                 }
                 Section {
                     Text("The original IPA is preserved. Installation requires a valid signature and any required App Store license; importing does not resign or decrypt the app.")

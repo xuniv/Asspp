@@ -33,6 +33,8 @@ test -f "$native/libAssppStoreRuntime.a"
 test -f "$native/Headers/AssppStoreRuntime.h"
 mkdir -p "$app"
 cp -R "$root/StoreRuntime.bundle" "$app/"
+test -f "$root/NativeRuntime/test-fixtures/input.ipa"
+cp -R "$root/NativeRuntime/test-fixtures" "$app/UnfairPlayFixtures"
 cat > "$app/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>example.asspp.runtime-check</string><key>CFBundleName</key><string>StoreRuntimeSmoke</string><key>CFBundleExecutable</key><string>StoreRuntimeSmoke</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleVersion</key><string>1</string><key>CFBundleShortVersionString</key><string>1.0</string><key>LSRequiresIPhoneOS</key><true/><key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array><key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/><key>UISceneConfigurations</key><dict><key>UIWindowSceneSessionRoleApplication</key><array><dict><key>UISceneConfigurationName</key><string>RuntimeCheck</string><key>UISceneDelegateClassName</key><string>StoreRuntimeSmoke.StoreRuntimeSmokeSceneDelegate</string></dict></array></dict></dict><key>UILaunchScreen</key><dict/></dict></plist>
 PLIST
@@ -42,6 +44,8 @@ SDKROOT="$simulator_sdk" xcrun --sdk iphonesimulator swiftc -parse-as-library -s
     -target "arm64-apple-ios17.0-simulator" -sdk "$simulator_sdk" \
     -import-objc-header "$native/Headers/AssppStoreRuntime.h" \
     "$root/Asspp/Backend/StoreRuntime/StoreRuntime.swift" \
+    "$root/Asspp/Backend/UnfairPlay/UnfairPlayRuntime.swift" \
+    "$root/Resources/Tests/UnfairPlaySmoke.swift" \
     "$root/Resources/Tests/StoreRuntimeSmoke.swift" \
     -Xlinker -force_load -Xlinker "$native/libAssppStoreRuntime.a" \
     -Xlinker -export_dynamic -lresolv -lz -framework Security -framework CoreFoundation \

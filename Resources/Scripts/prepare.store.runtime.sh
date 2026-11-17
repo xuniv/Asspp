@@ -2,7 +2,7 @@
 set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
 # Pin reviewed native runtime sources; public assets retain their independent hashes.
-revision=8a0311d67ea7f281e62849cd162c43d7881a975f
+revision=081f107df9669f0efa47581b46a98c062ae1b892
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 source_root="${ASSPP_NATIVE_SOURCE:-}"
@@ -18,6 +18,11 @@ mkdir -p "$repo_root/NativeRuntime" "$repo_root/StoreRuntime.bundle"
 git init -q "$work/ipatool"
 git -C "$work/ipatool" fetch -q --depth 1 https://github.com/majd/ipatool.git b352566155a667d8aaeabaa7ecec4966080f92ab
 git -C "$work/ipatool" checkout -q --detach FETCH_HEAD
+git init -q "$work/unfairplay"
+git -C "$work/unfairplay" fetch -q --depth 1 https://github.com/DrWhax/unfairplay.git d7503082a59e3dcfdd3ea7a70434dcecaaaf07df
+git -C "$work/unfairplay" checkout -q --detach FETCH_HEAD
+export UNFAIRPLAY_SOURCE="$work/unfairplay"
+export ASSPP_UNFAIRPLAY_FIXTURES=1
 for target in ${ASSPP_NATIVE_TARGETS:-ios-arm64 ios-simulator-arm64 macos-arm64 macos-amd64}; do
   export IPATOOL_SOURCE="$work/ipatool"
   export ASSPP_NATIVE_WORK="$work/build-$target"
@@ -34,6 +39,9 @@ if [[ -f "$work/output-macos-arm64/libAssppStoreRuntime.a" && -f "$work/output-m
   framework_args+=(-library "$work/output-macos/libAssppStoreRuntime.a" -headers "$work/output-macos-arm64/include")
 fi
 xcodebuild -create-xcframework "${framework_args[@]}" -output "$framework"
+test -f "$work/output-ios-arm64/test-fixtures/input.ipa"
+rm -rf "$repo_root/NativeRuntime/test-fixtures"
+cp -R "$work/output-ios-arm64/test-fixtures" "$repo_root/NativeRuntime/test-fixtures"
 cp -R "$work/output-ios-arm64/assets" "$repo_root/StoreRuntime.bundle/"
 cp -R "$work/output-ios-arm64/licenses" "$repo_root/StoreRuntime.bundle/"
 cp "$work/output-ios-arm64/upstream-revision.txt" "$repo_root/StoreRuntime.bundle/"

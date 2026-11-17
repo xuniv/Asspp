@@ -67,7 +67,10 @@ Task.detached(priority: .background) {
 DiggerManager.shared.maxConcurrentTasksCount = 3
 DiggerManager.shared.startDownloadImmediately = true
 
-Task { @MainActor in _ = ImportedIPAStore.shared }
+Task { @MainActor in
+    _ = ImportedIPAStore.shared
+    _ = UnfairPlayArtifactStore.shared
+}
 
 #if os(iOS)
     Task { @MainActor in

@@ -1,7 +1,5 @@
-Run Apple authentication and Store operations in a bundled native interpreter instead of Go/WASM inside WKWebView. The native runtime uses ahead-of-time compiled Go and a C interpreter; no JIT, jailbreak entitlement, hosted signer or remote executable is required. Keep the current ipatool protocol, verified public Apple certificates and account state in Keychain.
+Add native UnfairPlay operations to downloaded and imported IPA details, with Share IPA below the installation actions. Import multiple private enrollment models into the device-only Keychain, then decrypt, decrypt with SC_Info and supported iTunesMetadata account fields removed, verify, inspect, or prepare an encrypted macOS IPA with a compatible version-2 model. Originals stay unchanged; processed IPAs can be exported. Decrypted copies require re-signing before installation.
 
-Construct KBSync packets directly in native Go while retaining the pinned modern Store protocol and original interpreter oracle. Offline tests verify packet MACs and independent reference vectors.
+The offline engine shares the existing native Go runtime and needs no JIT, WebView or hosted service. Available pre-encryption hashes are checked; successful decryption without those hashes is reported separately from verified plaintext. Mac enrollment collection, setup, recovery and signed macOS-app conversion remain outside this integration.
 
-Remove WebContent startup, public-image base64 IPC and the browser guest bridge from the app. Preserve explicit authentication/2FA/license errors and existing installation certificate trust requirements. Native SAP, repeated ADI and Store-framework checks gate publication.
-
-Asspp.ipa and the English-only Asspp-AltStore.ipa are unsigned. The AltStore source is https://xuniv.github.io/alt/source.json.
+Include the exact public Apple catalog hosts needed by Store download fallbacks while retaining hostname/certificate verification. Asspp.ipa and the English-only Asspp-AltStore.ipa are unsigned. AltStore source: https://xuniv.github.io/alt/source.json.

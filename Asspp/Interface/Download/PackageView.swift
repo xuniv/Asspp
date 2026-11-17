@@ -98,6 +98,7 @@ struct PackageView: View {
                             try? FileManager.default.copyItem(at: url, to: newUrl)
                             AirDrop(items: [newUrl])
                         }
+                        IPAShareRow(url: url)
                     } header: {
                         Text("Control")
                     } footer: {
@@ -109,6 +110,11 @@ struct PackageView: View {
                         }
                     }
                 #endif
+
+                #if os(macOS)
+                    Section { IPAShareRow(url: url) }
+                #endif
+                UnfairPlaySection(inputURL: url, package: archive)
 
                 Section {
                     NavigationLink("Content Viewer") {

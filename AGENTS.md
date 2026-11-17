@@ -105,6 +105,14 @@ SwiftUI views organized by feature: Account, Search, Download, Installed (macOS 
 - Imported IPA files stay separate from downloaded packages/accounts. Stream/copy files without modification, validate only bounded main-app plist metadata, purge imports on restart and after 24 hours, and enforce the 8 GiB cap.
 - Run `bash Resources/Scripts/check.authentication-installer.sh` along with download checks. CI is manual only and checks an exact source SHA and configured version before starting one Apple Silicon iOS build. It builds device/simulator libraries once and publishes the same checked IPA artifacts. Mac packages remain an explicit local build option; never restore automatic push, PR, tag or polling builds. Preserve release privacy checks before any artifact publication.
 
+### UnfairPlay
+
+- The portable UnfairPlay engine shares the existing Store Go archive and operation gate. Never link a second Go runtime or use WebContent for native IPA processing. Keep the source pin and licenses in the shared runtime.
+- Enrollment models are private Keychain records. Import individual valid models separately from selected registry validation; v1 needs explicit solo selection and macOS SINF conversion uses v2. Never try unrelated enrollments after a crypto failure.
+- Downloaded/imported originals remain unchanged. Processed copies live in private temporary storage with restart/age/size cleanup. Verification retains no plaintext output artifact. Use fixed errors and safe count/coverage reports, excluding model/key hashes, selectors and upstream private diagnostics.
+- Decrypted outputs require subsequent signing. Known account/license stripping does not guarantee complete anonymization. Mac setup, collection, recovery and signing are excluded.
+- Synthetic smoke fixtures are generated only for the test application under `NativeRuntime/test-fixtures`. Never package them into the production bundle; release privacy checks reject model/license files and fixture directories.
+
 ### Shared runtime build and checks
 
 The generated root `StoreRuntime.bundle` contains compressed public images under `assets`; `NativeRuntime/AssppStoreRuntime.xcframework` supplies static iOS device, iOS simulator and universal macOS slices. Prepare both with `bash Resources/Scripts/prepare.store.runtime.sh`. Xcode force-loads the selected static archive and exports the Unicorn symbols required by its native loader. Run `bash Resources/Scripts/check.store.runtime.sh` on macOS and `bash Resources/Scripts/check.store.runtime.ios.sh` for the iOS simulator: they execute callback/zero-memory regressions and actual SAP, repeated ADI and Store-framework guests through the native C ABI without an Apple account. Release publication requires the iOS simulator check. Swift must never decompress public images or persist account state outside Keychain; retain only safe startup-stage diagnostics.

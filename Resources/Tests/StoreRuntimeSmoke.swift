@@ -69,6 +69,7 @@ struct StoreRuntimeSmoke {
                     print("Native Store runtime \(operation) passed")
                     fflush(stdout)
                 }
+                try await UnfairPlaySmoke.run()
                 print("Asspp runtime checks passed")
                 record("passed")
                 fflush(stdout)

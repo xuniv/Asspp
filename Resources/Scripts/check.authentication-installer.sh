@@ -24,5 +24,9 @@ if [ "$(uname -s)" = Darwin ]; then
         Asspp/Backend/StoreRuntime/StoreRuntime.swift \
         Asspp/Backend/Installer/InstallationProtocol.swift \
         Asspp/Interface/Download/ImportIPAView.swift \
-        Asspp/Interface/Download/InstallerView.swift
+        Asspp/Interface/Download/InstallerView.swift \
+        Asspp/Backend/UnfairPlay/UnfairPlayRuntime.swift \
+        Asspp/Interface/Download/UnfairPlayModelsView.swift \
+        Asspp/Interface/Download/UnfairPlayResultView.swift \
+        Asspp/Interface/Download/UnfairPlaySection.swift
 fi

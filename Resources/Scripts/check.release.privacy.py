@@ -23,6 +23,10 @@ def check(archive):
                     raise ValueError("archive contains provisioning or signing assets")
                 if path.name in {"Developer.xcconfig", "rootCA-key.pem"}:
                     raise ValueError("archive contains local developer configuration or a CA private key")
+                if path.suffix.lower() in {
+                    ".bin", ".snapshot", ".capture", ".sinf", ".supf", ".supp", ".sidb", ".sids"
+                } or any(part in path.parts for part in ("UnfairPlayFixtures", "test-fixtures", "SC_Info")):
+                    raise ValueError("archive contains an enrollment model, private license or smoke fixture")
                 if not item.is_dir():
                     content = package.read(item)
                     if re.search(rb"/Users/(?!runner(?:admin)?/|Shared/)[A-Za-z0-9._-]+/", content):
