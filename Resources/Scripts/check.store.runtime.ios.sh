@@ -44,7 +44,7 @@ codesign --force --sign - "$app"
 selection="$(python3 - <<'PY'
 import json,re,subprocess
 try:
-    listed=subprocess.run(['xcrun','simctl','list','--json'],capture_output=True,text=True,timeout=30)
+    listed=subprocess.run(['xcrun','simctl','list','--json'],capture_output=True,text=True,timeout=90)
 except subprocess.TimeoutExpired:
     raise SystemExit('simulator-list-timeout')
 if listed.returncode:
@@ -69,7 +69,7 @@ device_type="${selection#*$'\n'}"
 device="$(python3 - "$device_type" "$runtime" <<'PY'
 import subprocess,sys,uuid
 try:
-    created=subprocess.run(['xcrun','simctl','create','AssppRuntimeCheck',sys.argv[1],sys.argv[2]],capture_output=True,text=True,timeout=30)
+    created=subprocess.run(['xcrun','simctl','create','AssppRuntimeCheck',sys.argv[1],sys.argv[2]],capture_output=True,text=True,timeout=90)
 except subprocess.TimeoutExpired:
     raise SystemExit('simulator-create-timeout')
 if created.returncode:
@@ -79,10 +79,12 @@ PY
 )"
 echo "Booting $device_type with $runtime"
 container="$(python3 - "$device" "$app" <<'PY'
-import json,pathlib,subprocess,sys
+import pathlib,re,subprocess,sys
 device,app=sys.argv[1:]
 class ReadinessFailure(Exception):
-    pass
+    def __init__(self,code,shutdown405=False):
+        super().__init__(code)
+        self.shutdown405=shutdown405
 def command(phase,args,timeout):
     print('iOS simulator: '+phase, file=sys.stderr, flush=True)
     try:
@@ -90,35 +92,28 @@ def command(phase,args,timeout):
     except subprocess.TimeoutExpired:
         raise ReadinessFailure('simulator-'+phase+'-timeout') from None
     if result.returncode:
-        raise ReadinessFailure('simulator-'+phase+'-failed exit='+str(result.returncode))
+        shutdown405=bool(re.search(r'domain=com\.apple\.CoreSimulator\.SimError,\s*code=405\)',result.stderr)
+                         and re.search(r'Unable to lookup in current state:\s*Shutdown(?:\s|$)',result.stderr))
+        raise ReadinessFailure('simulator-'+phase+'-failed exit='+str(result.returncode),shutdown405)
     return result.stdout.strip()
-def state():
-    inventory=json.loads(command('state',['list','devices','--json'],30))
-    matches=[item for group in inventory['devices'].values() for item in group if item.get('udid','').lower()==device.lower()]
-    if len(matches)!=1:
-        raise ReadinessFailure('simulator-owned-device-missing')
-    return matches[0].get('state')
 try:
     for attempt in range(2):
         try:
-            if state()=='Shutdown':
-                command('boot',['boot',device],240)
+            # This UUID was freshly created; do not overload CoreSimulator
+            # with extra state-list queries between the successful commands.
+            command('boot',['boot',device],240)
             # Never use -b: all boots must stay within this owned-device budget.
             command('bootstatus',['bootstatus',device],240)
-            if state()!='Booted':
-                raise ReadinessFailure('simulator-boot-not-ready')
             command('install',['install',device,app],300)
-            if state()!='Booted':
-                raise ReadinessFailure('simulator-install-not-ready')
-            container=command('container',['get_app_container',device,'example.asspp.runtime-check','data'],60)
+            container=command('container',['get_app_container',device,'example.asspp.runtime-check','data'],120)
             if not pathlib.Path(container).is_absolute():
                 raise ReadinessFailure('simulator-container-invalid')
             print(container)
             break
         except ReadinessFailure as error:
-            # One infra recovery only, and only with an observed Shutdown.
+            # One infra recovery only for the owned command's exact 405/Shutdown.
             # No native check, authentication call or other failure is retried.
-            if attempt==0 and state()=='Shutdown':
+            if attempt==0 and error.shutdown405:
                 print(str(error)+'; simulator-shutdown-recovery-once',file=sys.stderr,flush=True)
                 continue
             raise
