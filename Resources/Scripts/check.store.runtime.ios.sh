@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ -n "${ASSPP_NATIVE_CHECK_RESULT:-}" ]]; then
+  rm -f -- "$ASSPP_NATIVE_CHECK_RESULT"
+fi
 root="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
 if [[ "$(uname -m)" != arm64 ]]; then
   echo 'The native arm64 iOS simulator check requires an Apple Silicon runner.' >&2
@@ -8,8 +11,10 @@ fi
 work="$(mktemp -d)"
 device=""
 cleanup() {
+  local cleanup_status=$?
+  trap - EXIT
   if [ -n "$device" ]; then
-    python3 - "$device" <<'PY'
+    python3 - "$device" <<'PY' || true
 import subprocess,sys
 for action in ['shutdown','delete']:
     try:
@@ -18,7 +23,8 @@ for action in ['shutdown','delete']:
         print('Simulator cleanup exceeded its time limit',flush=True)
 PY
   fi
-  rm -rf "$work"
+  rm -rf "$work" || true
+  exit "$cleanup_status"
 }
 trap cleanup EXIT
 app="$work/StoreRuntimeSmoke.app"
@@ -41,7 +47,7 @@ SDKROOT="$simulator_sdk" xcrun --sdk iphonesimulator swiftc -parse-as-library -s
     -Xlinker -export_dynamic -lresolv -lz -framework Security -framework CoreFoundation \
     -o "$app/StoreRuntimeSmoke"
 codesign --force --sign - "$app"
-selection="$(python3 - <<'PY'
+python3 - <<'PY' > "$work/selection"
 import json,re,subprocess
 try:
     listed=subprocess.run(['xcrun','simctl','list','--json'],capture_output=True,text=True,timeout=90)
@@ -63,10 +69,10 @@ for device in ["com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max","com.ap
 else:
     raise SystemExit("No compatible iPhone simulator runtime is installed")
 PY
-)"
+selection="$(cat "$work/selection")"
 runtime="${selection%%$'\n'*}"
 device_type="${selection#*$'\n'}"
-device="$(python3 - "$device_type" "$runtime" <<'PY'
+python3 - "$device_type" "$runtime" <<'PY' > "$work/device"
 import subprocess,sys,uuid
 try:
     created=subprocess.run(['xcrun','simctl','create','AssppRuntimeCheck',sys.argv[1],sys.argv[2]],capture_output=True,text=True,timeout=90)
@@ -76,9 +82,9 @@ if created.returncode:
     raise SystemExit('simulator-create-failed')
 print(uuid.UUID(created.stdout.strip()))
 PY
-)"
+device="$(cat "$work/device")"
 echo "Booting $device_type with $runtime"
-container="$(python3 - "$device" "$app" <<'PY'
+python3 - "$device" "$app" <<'PY' > "$work/container"
 import pathlib,re,subprocess,sys
 device,app=sys.argv[1:]
 class ReadinessFailure(Exception):
@@ -120,12 +126,12 @@ try:
 except ReadinessFailure as error:
     raise SystemExit(str(error)) from None
 PY
-)"
+container="$(cat "$work/container")"
 result_file="$container/Documents/runtime-smoke-result.txt"
 rm -f "$result_file"
 echo 'Starting the native Store runtime checks'
 python3 - "$device" "$result_file" <<'PY'
-import pathlib,subprocess,sys,threading,time
+import os,pathlib,subprocess,sys,threading,time
 result = pathlib.Path(sys.argv[2])
 process = subprocess.Popen(['xcrun','simctl','launch','--terminate-running-process','--console',sys.argv[1],'example.asspp.runtime-check'], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
 def report():
@@ -135,6 +141,7 @@ reader = threading.Thread(target=report,daemon=True)
 reader.start()
 started = time.monotonic()
 previous = ''
+passed = False
 try:
     while time.monotonic()-started < 720:
         status = result.read_text() if result.exists() else ''
@@ -142,6 +149,7 @@ try:
             print('iOS check status: '+status,flush=True)
             previous = status
         if status == 'passed':
+            passed = True
             break
         if status.startswith('failed:'):
             raise SystemExit('iOS native Store runtime check failed: '+status)
@@ -149,6 +157,7 @@ try:
             # Re-read after exit to catch the app's final atomic status write.
             status = result.read_text() if result.exists() else ''
             if status == 'passed':
+                passed = True
                 break
             raise SystemExit('iOS native Store runtime app exited before passing')
         time.sleep(0.5)
@@ -159,4 +168,9 @@ finally:
         process.kill()
         process.wait(timeout=10)
     reader.join(timeout=5)
+if not passed:
+    raise SystemExit('iOS native Store runtime passed marker missing')
+sentinel = os.environ.get('ASSPP_NATIVE_CHECK_RESULT')
+if sentinel:
+    pathlib.Path(sentinel).write_text('passed\n')
 PY

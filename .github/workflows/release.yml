@@ -14,6 +14,10 @@ on:
         description: Publish these same verified artifacts after all checks pass
         default: false
         type: boolean
+      runtime_only:
+        description: Recheck an existing release; only verification files may differ
+        default: false
+        type: boolean
 permissions:
   contents: read
 concurrency:
@@ -33,6 +37,7 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           RELEASE_VERSION: ${{ inputs.release_version }}
           PUBLISH: ${{ inputs.publish }}
+          RUNTIME_ONLY: ${{ inputs.runtime_only }}
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
@@ -42,7 +47,9 @@ jobs:
           assert re.fullmatch(r'4\.\d+\.\d+',version), 'Invalid version'
           config=pathlib.Path('Configuration/Version.xcconfig').read_text()
           assert re.search(r'^MARKETING_VERSION\s*=\s*'+re.escape(version)+r'\s*$',config,re.M), 'Version mismatch'
-          if os.environ['PUBLISH']=='true': assert os.environ['GITHUB_REF']=='refs/heads/main', 'Publish only from main'
+          runtime_only=os.environ['RUNTIME_ONLY']=='true'
+          assert not (runtime_only and os.environ['PUBLISH']=='true'), 'Verification cannot publish'
+          if runtime_only or os.environ['PUBLISH']=='true': assert os.environ['GITHUB_REF']=='refs/heads/main', 'Use main for release verification or publication'
           script=pathlib.Path('Resources/Scripts/prepare.store.runtime.sh').read_text()
           assert re.search(r'^revision=[0-9a-f]{40}$',script,re.M), 'Native source must be pinned'
           PY
@@ -51,6 +58,14 @@ jobs:
           python3 - <<'PY'
           import json,os,subprocess
           version=os.environ['RELEASE_VERSION']
+          if os.environ['RUNTIME_ONLY']=='true':
+              repo=os.environ['GITHUB_REPOSITORY']
+              subprocess.run(['gh','api',f'repos/{repo}/releases/tags/{version}'],check=True,stdout=subprocess.DEVNULL)
+              released_sha=subprocess.check_output(['gh','api',f'repos/{repo}/commits/{version}','--jq','.sha'],text=True).strip()
+              subprocess.run(['git','fetch','--no-tags','--depth=1','origin',released_sha],check=True)
+              changed=subprocess.check_output(['git','diff','--name-only',released_sha,os.environ['EXPECTED_SHA']],text=True).splitlines()
+              assert set(changed)<= {'.github/workflows/release.yml','Resources/Scripts/check.store.runtime.ios.sh'}, 'Released application or runtime sources changed'
+              raise SystemExit(0)
           result=subprocess.run(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/git/ref/tags/{version}'],text=True,capture_output=True)
           if result.returncode==0:
               assert json.loads(result.stdout)['object']['sha']==os.environ['EXPECTED_SHA'], 'Existing tag points to another source'
@@ -128,18 +143,25 @@ jobs:
       - name: Check native iOS runtime before compiling the application
         env:
           SIMCTL_CHILD_ASS_RUNTIME_LIVE_APPLE: '1'
-        run: bash Resources/Scripts/check.store.runtime.ios.sh
+        run: |
+          result="$RUNNER_TEMP/native-ios-check-passed"
+          rm -f "$result"
+          ASSPP_NATIVE_CHECK_RESULT="$result" bash Resources/Scripts/check.store.runtime.ios.sh
+          test -f "$result"
+          test "$(cat "$result")" = passed
       - name: Check downloads, authentication and install certificates
         run: |
           bash Resources/Scripts/check.downloads.sh
           bash Resources/Scripts/check.authentication-installer.sh
       - name: Build and verify unsigned IPA packages
+        if: inputs.runtime_only != true
         run: |
           zsh Resources/Scripts/compile.release.mobile.ci.sh "$PWD" "$RUNNER_TEMP/Asspp.ipa"
           python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.ipa"
           python3 Resources/Scripts/prepare.alt.ipa.py "$RUNNER_TEMP/Asspp.ipa" "$RUNNER_TEMP/Asspp-AltStore.ipa"
           python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp-AltStore.ipa"
       - uses: actions/upload-artifact@v4
+        if: inputs.runtime_only != true
         with:
           name: verified-unsigned-ios
           path: |
@@ -148,7 +170,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
   publish:
-    if: inputs.publish && github.ref == 'refs/heads/main'
+    if: inputs.publish && !inputs.runtime_only && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 5
