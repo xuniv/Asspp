@@ -2,7 +2,7 @@
 set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
 # Pin reviewed native runtime sources; public assets retain their independent hashes.
-revision=0d361db8701c102e31b83efb99615f957eb41f44
+revision=8a0311d67ea7f281e62849cd162c43d7881a975f
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 source_root="${ASSPP_NATIVE_SOURCE:-}"
@@ -18,22 +18,22 @@ mkdir -p "$repo_root/NativeRuntime" "$repo_root/StoreRuntime.bundle"
 git init -q "$work/ipatool"
 git -C "$work/ipatool" fetch -q --depth 1 https://github.com/majd/ipatool.git b352566155a667d8aaeabaa7ecec4966080f92ab
 git -C "$work/ipatool" checkout -q --detach FETCH_HEAD
-for target in ios-arm64 ios-simulator-arm64 macos-arm64 macos-amd64; do
+for target in ${ASSPP_NATIVE_TARGETS:-ios-arm64 ios-simulator-arm64 macos-arm64 macos-amd64}; do
   export IPATOOL_SOURCE="$work/ipatool"
   export ASSPP_NATIVE_WORK="$work/build-$target"
   if [[ "$target" == ios-arm64 ]]; then export ASSPP_NATIVE_SKIP_ASSETS=0; else export ASSPP_NATIVE_SKIP_ASSETS=1; fi
   bash "$source_root/runtime/native/build.sh" "$work/output-$target" "$target"
 done
-mkdir -p "$work/output-macos"
-xcrun lipo -create "$work/output-macos-arm64/libAssppStoreRuntime.a" \
-  "$work/output-macos-amd64/libAssppStoreRuntime.a" -output "$work/output-macos/libAssppStoreRuntime.a"
 framework="$repo_root/NativeRuntime/AssppStoreRuntime.xcframework"
 if [[ -d "$framework" ]]; then rm -rf "$framework"; fi
-xcodebuild -create-xcframework \
-  -library "$work/output-ios-arm64/libAssppStoreRuntime.a" -headers "$work/output-ios-arm64/include" \
-  -library "$work/output-ios-simulator-arm64/libAssppStoreRuntime.a" -headers "$work/output-ios-simulator-arm64/include" \
-  -library "$work/output-macos/libAssppStoreRuntime.a" -headers "$work/output-macos-arm64/include" \
-  -output "$framework"
+framework_args=(-library "$work/output-ios-arm64/libAssppStoreRuntime.a" -headers "$work/output-ios-arm64/include"
+  -library "$work/output-ios-simulator-arm64/libAssppStoreRuntime.a" -headers "$work/output-ios-simulator-arm64/include")
+if [[ -f "$work/output-macos-arm64/libAssppStoreRuntime.a" && -f "$work/output-macos-amd64/libAssppStoreRuntime.a" ]]; then
+  mkdir -p "$work/output-macos"
+  xcrun lipo -create "$work/output-macos-arm64/libAssppStoreRuntime.a" "$work/output-macos-amd64/libAssppStoreRuntime.a" -output "$work/output-macos/libAssppStoreRuntime.a"
+  framework_args+=(-library "$work/output-macos/libAssppStoreRuntime.a" -headers "$work/output-macos-arm64/include")
+fi
+xcodebuild -create-xcframework "${framework_args[@]}" -output "$framework"
 cp -R "$work/output-ios-arm64/assets" "$repo_root/StoreRuntime.bundle/"
 cp -R "$work/output-ios-arm64/licenses" "$repo_root/StoreRuntime.bundle/"
 cp "$work/output-ios-arm64/upstream-revision.txt" "$repo_root/StoreRuntime.bundle/"

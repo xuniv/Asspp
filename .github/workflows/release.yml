@@ -1,25 +1,69 @@
-name: Unsigned Release
+name: Verified unsigned iOS release
 on:
-  push:
-    tags: ['4.*']
   workflow_dispatch:
     inputs:
-      release_version:
-        description: Existing release whose AltStore package should be regenerated
+      expected_sha:
+        description: Exact reviewed source commit (40 hex characters)
         required: true
         type: string
+      release_version:
+        description: Version already set in Configuration/Version.xcconfig
+        required: true
+        type: string
+      publish:
+        description: Publish these same verified artifacts after all checks pass
+        default: false
+        type: boolean
 permissions:
   contents: read
 concurrency:
-  group: release-${{ github.ref }}
+  group: verified-ios-release
   cancel-in-progress: false
 jobs:
-  runtime:
-    if: github.event_name == 'push'
+  preflight:
+    if: github.repository == 'xuniv/Asspp'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require the exact reviewed revision and version
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+          PUBLISH: ${{ inputs.publish }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os,pathlib,re
+          sha=os.environ['EXPECTED_SHA']; version=os.environ['RELEASE_VERSION']
+          assert re.fullmatch(r'[0-9a-f]{40}',sha) and sha==os.environ['GITHUB_SHA'], 'Source revision changed'
+          assert re.fullmatch(r'4\.\d+\.\d+',version), 'Invalid version'
+          config=pathlib.Path('Configuration/Version.xcconfig').read_text()
+          assert re.search(r'^MARKETING_VERSION\s*=\s*'+re.escape(version)+r'\s*$',config,re.M), 'Version mismatch'
+          if os.environ['PUBLISH']=='true': assert os.environ['GITHUB_REF']=='refs/heads/main', 'Publish only from main'
+          script=pathlib.Path('Resources/Scripts/prepare.store.runtime.sh').read_text()
+          assert re.search(r'^revision=[0-9a-f]{40}$',script,re.M), 'Native source must be pinned'
+          PY
+          git diff --check
+          bash -n Resources/Scripts/prepare.store.runtime.sh Resources/Scripts/check.store.runtime.ios.sh
+          python3 - <<'PY'
+          import json,os,subprocess
+          version=os.environ['RELEASE_VERSION']
+          result=subprocess.run(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/git/ref/tags/{version}'],text=True,capture_output=True)
+          if result.returncode==0:
+              assert json.loads(result.stdout)['object']['sha']==os.environ['EXPECTED_SHA'], 'Existing tag points to another source'
+          else:
+              assert 'Not Found' in result.stderr, 'Cannot verify release tag'
+          if os.environ['PUBLISH']=='true':
+              release=subprocess.run(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/releases/tags/{version}'],text=True,capture_output=True)
+              assert release.returncode!=0 and 'Not Found' in release.stderr, 'Release already exists or cannot be verified'
+          PY
+  build:
+    needs: preflight
     runs-on: xcode-27
-    timeout-minutes: 45
-    permissions:
-      contents: read
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,128 +78,77 @@ jobs:
             ~/Library/Caches/ipatool/sap
             ~/Library/Caches/go-build
             ~/go/pkg/mod
-          key: native-tci-public-assets-v1-${{ runner.arch }}
+          key: native-tci-ios-v1-${{ runner.arch }}
+      - uses: actions/cache@v4
+        with:
+          path: build/DerivedDataApp/SourcePackages
+          key: asspp-spm-xcode27-${{ hashFiles('**/Package.resolved') }}
       - name: Select stable Xcode
         run: bash Resources/Scripts/select.xcode.sh
-      - name: Build native no-JIT runtime and public assets
-        run: bash Resources/Scripts/prepare.store.runtime.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Asspp-native-runtime
-          path: |
-            StoreRuntime.bundle
-            NativeRuntime
-          retention-days: 3
-          if-no-files-found: error
-  build:
-    needs: runtime
-    runs-on: xcode-27
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ios, macos]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: Asspp-native-runtime
-          path: .
-      - name: Select stable Xcode
-        run: bash Resources/Scripts/select.xcode.sh
-      - name: Check the native interpreter offline
-        if: matrix.platform == 'ios'
-        run: bash Resources/Scripts/check.store.runtime.sh
-      - name: Build and verify unsigned package
+      - name: Build only device and simulator native libraries
         env:
-          PLATFORM: ${{ matrix.platform }}
+          ASSPP_NATIVE_TARGETS: ios-arm64 ios-simulator-arm64
+        run: bash Resources/Scripts/prepare.store.runtime.sh
+      - name: Check native iOS runtime before compiling the application
+        env:
+          SIMCTL_CHILD_ASS_RUNTIME_LIVE_APPLE: '1'
+        run: bash Resources/Scripts/check.store.runtime.ios.sh
+      - name: Check downloads, authentication and install certificates
         run: |
-          set -euo pipefail
-          if [ "$PLATFORM" = ios ]; then
-            bash Resources/Scripts/check.downloads.sh
-            bash Resources/Scripts/check.authentication-installer.sh
-            zsh Resources/Scripts/compile.release.mobile.ci.sh "$PWD" "$RUNNER_TEMP/Asspp.ipa"
-            python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.ipa"
-            python3 Resources/Scripts/prepare.alt.ipa.py "$RUNNER_TEMP/Asspp.ipa" "$RUNNER_TEMP/Asspp-AltStore.ipa"
-            python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp-AltStore.ipa"
-          else
-            zsh Resources/Scripts/compile.release.osx.sh "$PWD" "$RUNNER_TEMP/Asspp.zip"
-            python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.zip"
-          fi
+          bash Resources/Scripts/check.downloads.sh
+          bash Resources/Scripts/check.authentication-installer.sh
+      - name: Build and verify unsigned IPA packages
+        run: |
+          zsh Resources/Scripts/compile.release.mobile.ci.sh "$PWD" "$RUNNER_TEMP/Asspp.ipa"
+          python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.ipa"
+          python3 Resources/Scripts/prepare.alt.ipa.py "$RUNNER_TEMP/Asspp.ipa" "$RUNNER_TEMP/Asspp-AltStore.ipa"
+          python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp-AltStore.ipa"
       - uses: actions/upload-artifact@v4
         with:
-          name: Asspp-${{ matrix.platform }}-unsigned-release
+          name: verified-unsigned-ios
           path: |
             ${{ runner.temp }}/Asspp.ipa
             ${{ runner.temp }}/Asspp-AltStore.ipa
-            ${{ runner.temp }}/Asspp.zip
+          retention-days: 1
           if-no-files-found: error
   publish:
-    needs: [build, ios-runtime]
-    runs-on: ubuntu-latest
+    if: inputs.publish && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
-          pattern: Asspp-*-unsigned-release
-          merge-multiple: true
+          name: verified-unsigned-ios
           path: release
-      - name: Publish verified unsigned release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" \
-            release/Asspp.ipa release/Asspp-AltStore.ipa release/Asspp.zip --verify-tag \
-            --title "$GITHUB_REF_NAME" --notes-file Resources/ReleaseNotes.md
-  ios-runtime:
-    if: github.event_name == 'push'
-    needs: runtime
-    runs-on: xcode-27
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: Asspp-native-runtime
-          path: .
-      - name: Select stable Xcode
-        run: bash Resources/Scripts/select.xcode.sh
-      - name: Check the native no-JIT runtime in an iOS simulator
-        run: bash Resources/Scripts/check.store.runtime.ios.sh
-  source-package:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-    runs-on: xcode-27
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Regenerate the unsigned AltStore package from the public release
+      - name: Publish the same checked packages without rebuilding
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
-          set -euo pipefail
-          [[ "$RELEASE_VERSION" =~ ^4\.[0-9]+\.[0-9]+$ ]]
-          cd "$RUNNER_TEMP"
-          gh release download "$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --pattern Asspp.ipa
-          export EXPECTED_SHA="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_VERSION" --jq '.assets[] | select(.name == "Asspp.ipa") | .digest')"
           python3 - <<'PY'
-          import hashlib, os, pathlib
-          expected = os.environ['EXPECTED_SHA']
-          actual = 'sha256:' + hashlib.sha256(pathlib.Path('Asspp.ipa').read_bytes()).hexdigest()
-          if expected != actual:
-              raise SystemExit('public source IPA digest mismatch')
+          import json,os,subprocess
+          version=os.environ['RELEASE_VERSION']; repo=os.environ['GITHUB_REPOSITORY']
+          tag=subprocess.run(['gh','api',f'repos/{repo}/git/ref/tags/{version}'],text=True,capture_output=True)
+          if tag.returncode==0:
+              commit=subprocess.check_output(['gh','api',f'repos/{repo}/commits/{version}','--jq','.sha'],text=True).strip()
+              assert commit==os.environ['GITHUB_SHA'], 'Release tag changed after preflight'
+          else:
+              assert 'Not Found' in tag.stderr, 'Cannot recheck release tag'
           PY
-          python3 "$GITHUB_WORKSPACE/Resources/Scripts/check.release.privacy.py" Asspp.ipa
-          python3 "$GITHUB_WORKSPACE/Resources/Scripts/prepare.alt.ipa.py" Asspp.ipa Asspp-AltStore.ipa
-          python3 "$GITHUB_WORKSPACE/Resources/Scripts/check.release.privacy.py" Asspp-AltStore.ipa
-          gh release upload "$RELEASE_VERSION" Asspp-AltStore.ipa --repo "$GITHUB_REPOSITORY" --clobber
+          gh release create "$RELEASE_VERSION" release/Asspp.ipa release/Asspp-AltStore.ipa \
+            --target "$GITHUB_SHA" --title "$RELEASE_VERSION" --notes-file Resources/ReleaseNotes.md
+      - name: Remove this run's temporary packages after publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[] | select(.name == "verified-unsigned-ios") | .id' > "$RUNNER_TEMP/artifact-ids"
+          while read -r artifact_id; do
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
+          done < "$RUNNER_TEMP/artifact-ids"

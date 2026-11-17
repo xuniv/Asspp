@@ -103,7 +103,7 @@ SwiftUI views organized by feature: Account, Search, Download, Installed (macOS 
 - OTA URLs use `InstallationProtocol.installLink`: the port belongs only in the HTTPS manifest URL. System certificate verification must remain enabled; never add trust-all delegates, custom root anchors to bypass device trust, or ATS-wide exceptions.
 - The CA endpoint serves a DER-root `.mobileconfig` with `application/x-apple-aspen-config`; `Installer.certificateURL()` waits for server readiness. Bind both local servers to loopback. The profile must contain public certificates only; never embed a root private key or personal signing identity.
 - Imported IPA files stay separate from downloaded packages/accounts. Stream/copy files without modification, validate only bounded main-app plist metadata, purge imports on restart and after 24 hours, and enforce the 8 GiB cap.
-- Run `bash Resources/Scripts/check.authentication-installer.sh` along with download checks. macOS CI compiles English/Chinese localization and the unsigned iOS/macOS targets. Preserve release privacy checks before any artifact publication.
+- Run `bash Resources/Scripts/check.authentication-installer.sh` along with download checks. CI is manual only and checks an exact source SHA and configured version before starting one Apple Silicon iOS build. It builds device/simulator libraries once and publishes the same checked IPA artifacts. Mac packages remain an explicit local build option; never restore automatic push, PR, tag or polling builds. Preserve release privacy checks before any artifact publication.
 
 ### Shared runtime build and checks
 
