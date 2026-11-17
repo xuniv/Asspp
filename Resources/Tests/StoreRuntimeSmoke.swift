@@ -34,13 +34,22 @@ struct StoreRuntimeSmoke {
     static func run() {
         Task { @MainActor in
             do {
+                // Check the Swift/C-string request boundary before a guest runs.
+                for invalid in ["{}", "{\"operation\":\"unknown\"}", "{}\u{0000}", String(repeating: " ", count: 8 * 1024 * 1024 + 1)] {
+                    do {
+                        _ = try await StoreRuntime.shared.run(invalid)
+                        throw StoreRuntimeError.startup("invalid-request-accepted")
+                    } catch StoreRuntimeError.operation("invalid_request", 0) {
+                        // Expected; no native operation should receive this input.
+                    }
+                }
                 var operations = ["bridge-preflight", "memory-preflight", "preflight"] + Array(repeating: "adi-preflight", count: 3) + ["framework-preflight"]
                 if ProcessInfo.processInfo.environment["ASS_RUNTIME_LIVE_APPLE"] == "1" {
                     operations += ["network-preflight", "sap-test", "anisette-preflight"]
                 }
                 for operation in operations {
                     record("running:" + operation)
-                    print("WKWebView \(operation) starting")
+                    print("Native Store runtime \(operation) starting")
                     fflush(stdout)
                     let input = try JSONSerialization.data(withJSONObject: ["operation": operation, "deviceID": "020000000001"])
                     let output = try await StoreRuntime.shared.run(String(decoding: input, as: UTF8.self))
@@ -48,13 +57,16 @@ struct StoreRuntimeSmoke {
                           let result = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                           result["ok"] as? Bool == true
                     else {
-                        // Only synthetic offline operations run in this executable.
-                        print("Offline guest failure: " + output)
+                        // Even optional public probes must not print state,
+                        // signatures, Apple messages or raw native responses.
+                        let response = (try? JSONSerialization.jsonObject(with: Data(output.utf8))) as? [String: Any]
+                        let code = StoreRuntimeError.safeOperationCode(response?["error"] as? String ?? "operation_failed")
+                        print("Native guest failure: " + code)
                         record("failed:guest")
                         fflush(stdout)
                         exit(1)
                     }
-                    print("WKWebView \(operation) passed")
+                    print("Native Store runtime \(operation) passed")
                     fflush(stdout)
                 }
                 print("Asspp runtime checks passed")
@@ -62,10 +74,10 @@ struct StoreRuntimeSmoke {
                 fflush(stdout)
                 exit(0)
             } catch {
-                // Synthetic, offline requests only; never retain WKError payloads.
+                // Retain fixed diagnostics only, never native error payloads.
                 let code = (error as? StoreRuntimeError)?.diagnostic ?? "unavailable"
                 record("failed:" + code)
-                fputs("Bundled WKWebView interpreter check failed: \(code)\n", stderr)
+                fputs("Native Store runtime check failed: \(code)\n", stderr)
                 exit(1)
             }
         }

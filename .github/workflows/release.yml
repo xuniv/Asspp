@@ -16,7 +16,8 @@ concurrency:
 jobs:
   runtime:
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: xcode-27
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -27,24 +28,28 @@ jobs:
         with:
           go-version: '1.26.5'
           cache: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
       - uses: actions/cache@v4
         with:
-          path: ~/.cache/ipatool/sap
-          key: public-apple-macos27-26A434-arm64-v5
-      - name: Build the pinned client interpreter and public assets
+          path: |
+            ~/Library/Caches/ipatool/sap
+            ~/Library/Caches/go-build
+            ~/go/pkg/mod
+          key: native-tci-public-assets-v1-${{ runner.arch }}
+      - name: Select stable Xcode
+        run: bash Resources/Scripts/select.xcode.sh
+      - name: Build native no-JIT runtime and public assets
         run: bash Resources/Scripts/prepare.store.runtime.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: Asspp-client-runtime
-          path: StoreRuntime.bundle
+          name: Asspp-native-runtime
+          path: |
+            StoreRuntime.bundle
+            NativeRuntime
           retention-days: 3
           if-no-files-found: error
   build:
     needs: runtime
-    runs-on: macos-26-intel
+    runs-on: xcode-27
     strategy:
       fail-fast: false
       matrix:
@@ -55,11 +60,11 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
-          name: Asspp-client-runtime
-          path: StoreRuntime.bundle
+          name: Asspp-native-runtime
+          path: .
       - name: Select stable Xcode
         run: bash Resources/Scripts/select.xcode.sh
-      - name: Check the bundled WKWebView interpreter offline
+      - name: Check the native interpreter offline
         if: matrix.platform == 'ios'
         run: bash Resources/Scripts/check.store.runtime.sh
       - name: Build and verify unsigned package
@@ -118,15 +123,15 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
-          name: Asspp-client-runtime
-          path: StoreRuntime.bundle
+          name: Asspp-native-runtime
+          path: .
       - name: Select stable Xcode
         run: bash Resources/Scripts/select.xcode.sh
-      - name: Check the bundled interpreter in an iOS simulator
+      - name: Check the native no-JIT runtime in an iOS simulator
         run: bash Resources/Scripts/check.store.runtime.ios.sh
   source-package:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-    runs-on: macos-26-intel
+    runs-on: xcode-27
     permissions:
       contents: write
     steps:

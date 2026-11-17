@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
+if [[ "$(uname -m)" != arm64 ]]; then
+  echo 'The native arm64 iOS simulator check requires an Apple Silicon runner.' >&2
+  exit 1
+fi
 work="$(mktemp -d)"
 device=""
 cleanup() {
@@ -18,6 +22,9 @@ PY
 }
 trap cleanup EXIT
 app="$work/StoreRuntimeSmoke.app"
+native="$root/NativeRuntime/AssppStoreRuntime.xcframework/ios-arm64-simulator"
+test -f "$native/libAssppStoreRuntime.a"
+test -f "$native/Headers/AssppStoreRuntime.h"
 mkdir -p "$app"
 cp -R "$root/StoreRuntime.bundle" "$app/"
 cat > "$app/Info.plist" <<'PLIST'
@@ -26,11 +33,12 @@ PLIST
 simulator_sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 SDKROOT="$simulator_sdk" xcrun --sdk iphonesimulator swiftc -parse-as-library -swift-version 5 \
     "$root/Asspp/Backend/AppStore/StoreDiagnostics.swift" \
-    -target "$(uname -m)-apple-ios17.0-simulator" -sdk "$simulator_sdk" \
+    -target "arm64-apple-ios17.0-simulator" -sdk "$simulator_sdk" \
+    -import-objc-header "$native/Headers/AssppStoreRuntime.h" \
     "$root/Asspp/Backend/StoreRuntime/StoreRuntime.swift" \
-    "$root/Asspp/Backend/StoreRuntime/StoreRuntimeAssets.swift" \
-    "$root/Asspp/Backend/StoreRuntime/StoreRuntimeSockets.swift" \
     "$root/Resources/Tests/StoreRuntimeSmoke.swift" \
+    -Xlinker -force_load -Xlinker "$native/libAssppStoreRuntime.a" \
+    -Xlinker -export_dynamic -lresolv -lz -framework Security -framework CoreFoundation \
     -o "$app/StoreRuntimeSmoke"
 codesign --force --sign - "$app"
 selection="$(xcrun simctl list --json | python3 -c '
@@ -62,7 +70,7 @@ xcrun simctl install "$device" "$app"
 container="$(xcrun simctl get_app_container "$device" example.asspp.runtime-check data)"
 result_file="$container/Documents/runtime-smoke-result.txt"
 rm -f "$result_file"
-echo 'Starting the bundled WKWebView checks'
+echo 'Starting the native Store runtime checks'
 python3 - "$device" "$result_file" <<'PY'
 import pathlib,subprocess,sys,threading,time
 result = pathlib.Path(sys.argv[2])
@@ -83,12 +91,12 @@ try:
         if status == 'passed':
             break
         if status.startswith('failed:'):
-            raise SystemExit('iOS WKWebView runtime check failed: '+status)
+            raise SystemExit('iOS native Store runtime check failed: '+status)
         if not status and process.poll() is not None and time.monotonic()-started > 45:
             raise SystemExit('iOS check app exited before its scene started')
         time.sleep(0.5)
     else:
-        raise SystemExit('iOS WKWebView runtime check timed out')
+        raise SystemExit('iOS native Store runtime check timed out')
 finally:
     if process.poll() is None:
         process.kill()

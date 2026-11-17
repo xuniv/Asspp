@@ -4,7 +4,7 @@ import Foundation
 import KeychainAccess
 
 /// Serialize the complete read/execute/save transaction, including across awaits.
-/// Provisioning records are private Keychain data, never WebKit or disk files.
+/// Provisioning records are private Keychain data, never public asset files.
 actor StoreRuntimeClient {
     static let shared = StoreRuntimeClient()
     private let keychain = Keychain(service: "wiki.qaq.Asspp.StoreRuntime")
@@ -49,7 +49,7 @@ actor StoreRuntimeClient {
         if let state = response["state"] as? [String: Any], state["records"] is [String: Any] {
             try keychain.set(JSONSerialization.data(withJSONObject: state), key: name)
         }
-        let code = response["error"] as? String ?? "operation_failed"
+        let code = StoreRuntimeError.safeOperationCode(response["error"] as? String ?? "operation_failed")
         if response["ok"] as? Bool != true, code != "license_exists" {
             if code == "verification_required" { throw ApplePackage.AuthenticationError.verificationCodeRequired }
             if code == "license_required" { throw ApplePackageError.licenseRequired }

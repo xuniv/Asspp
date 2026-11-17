@@ -1,13 +1,42 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo_root="$(cd -- "$(dirname -- "$0")/../.." && pwd)"
-# Updated only after the shared client runtime passes its browser checks.
-revision=78fa38dd41bb0e9878571c0072c7900afb3f8488
+# Pin reviewed native runtime sources; public assets retain their independent hashes.
+revision=0d361db8701c102e31b83efb99615f957eb41f44
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-mkdir -p "$work/source"
-curl --fail --location --retry 3 --silent --show-error \
-  "https://codeload.github.com/xuniv/AssppWeb/tar.gz/$revision" -o "$work/source.tar.gz"
-tar -xzf "$work/source.tar.gz" --strip-components=1 -C "$work/source"
-npm install --prefix "$work/js" --save-exact --ignore-scripts --no-audit --no-fund esbuild@0.25.12
-ESBUILD="$work/js/node_modules/.bin/esbuild" bash "$work/source/runtime/build.sh" "$repo_root/StoreRuntime.bundle"
+source_root="${ASSPP_NATIVE_SOURCE:-}"
+if [[ -z "$source_root" ]]; then
+  source_root="$work/source"
+  mkdir -p "$source_root"
+  curl --fail --location --retry 3 --silent --show-error \
+    "https://codeload.github.com/xuniv/AssppWeb/tar.gz/$revision" -o "$work/source.tar.gz"
+  tar -xzf "$work/source.tar.gz" --strip-components=1 -C "$source_root"
+fi
+for tool in go cmake xcrun python3 git; do command -v "$tool" >/dev/null; done
+mkdir -p "$repo_root/NativeRuntime" "$repo_root/StoreRuntime.bundle"
+git init -q "$work/ipatool"
+git -C "$work/ipatool" fetch -q --depth 1 https://github.com/majd/ipatool.git b352566155a667d8aaeabaa7ecec4966080f92ab
+git -C "$work/ipatool" checkout -q --detach FETCH_HEAD
+for target in ios-arm64 ios-simulator-arm64 macos-arm64 macos-amd64; do
+  export IPATOOL_SOURCE="$work/ipatool"
+  export ASSPP_NATIVE_WORK="$work/build-$target"
+  if [[ "$target" == ios-arm64 ]]; then export ASSPP_NATIVE_SKIP_ASSETS=0; else export ASSPP_NATIVE_SKIP_ASSETS=1; fi
+  bash "$source_root/runtime/native/build.sh" "$work/output-$target" "$target"
+done
+mkdir -p "$work/output-macos"
+xcrun lipo -create "$work/output-macos-arm64/libAssppStoreRuntime.a" \
+  "$work/output-macos-amd64/libAssppStoreRuntime.a" -output "$work/output-macos/libAssppStoreRuntime.a"
+framework="$repo_root/NativeRuntime/AssppStoreRuntime.xcframework"
+if [[ -d "$framework" ]]; then rm -rf "$framework"; fi
+xcodebuild -create-xcframework \
+  -library "$work/output-ios-arm64/libAssppStoreRuntime.a" -headers "$work/output-ios-arm64/include" \
+  -library "$work/output-ios-simulator-arm64/libAssppStoreRuntime.a" -headers "$work/output-ios-simulator-arm64/include" \
+  -library "$work/output-macos/libAssppStoreRuntime.a" -headers "$work/output-macos-arm64/include" \
+  -output "$framework"
+cp -R "$work/output-ios-arm64/assets" "$repo_root/StoreRuntime.bundle/"
+cp -R "$work/output-ios-arm64/licenses" "$repo_root/StoreRuntime.bundle/"
+cp "$work/output-ios-arm64/upstream-revision.txt" "$repo_root/StoreRuntime.bundle/"
+# Discard obsolete generated WebContent resources when upgrading an existing checkout.
+rm -f "$repo_root/StoreRuntime.bundle/runtime.wasm" "$repo_root/StoreRuntime.bundle/store-runtime.js" "$repo_root/StoreRuntime.bundle/index.html"
+printf '%s\n' "$revision" > "$repo_root/NativeRuntime/source-revision.txt"

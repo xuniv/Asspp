@@ -132,3 +132,6 @@ Foundation/ApplePackage/
 
 # Generated shared interpreter and verified public Apple assets.
 /StoreRuntime.bundle/
+
+# Generated static native client runtime
+/NativeRuntime/

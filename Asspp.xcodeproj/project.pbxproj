@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A55F00000000000000000003 /* AssppStoreRuntime.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A55F00000000000000000004 /* AssppStoreRuntime.xcframework */; };
         A55F00000000000000000001 /* StoreRuntime.bundle in Resources */ = {isa = PBXBuildFile; fileRef = A55F00000000000000000002 /* StoreRuntime.bundle */; };
 		507974632E784D4E0016F540 /* Digger in Frameworks */ = {isa = PBXBuildFile; productRef = 507974622E784D4E0016F540 /* Digger */; };
 		50ABFB122F48A6D60077DE1A /* ApplePackage in Frameworks */ = {isa = PBXBuildFile; productRef = 50ABFB112F48A6D60077DE1A /* ApplePackage */; };
@@ -27,6 +28,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        A55F00000000000000000004 /* AssppStoreRuntime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = NativeRuntime/AssppStoreRuntime.xcframework; sourceTree = SOURCE_ROOT; };
         A55F00000000000000000002 /* StoreRuntime.bundle */ = {isa = PBXFileReference; lastKnownFileType = wrapper.cfbundle; path = StoreRuntime.bundle; sourceTree = "<group>"; };
 		50D44D022C3F91F700CF6A69 /* Asspp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Asspp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		50DCBD772F346DFE007100D2 /* Certificates */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Certificates; sourceTree = "<group>"; };
@@ -57,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                A55F00000000000000000003 /* AssppStoreRuntime.xcframework in Frameworks */,
 				50D44D3F2C3FA59500CF6A69 /* Kingfisher in Frameworks */,
 				50E28B812C40BA52007891E0 /* ColorfulX in Frameworks */,
 				50D44D232C3F92C500CF6A69 /* NIOSSL in Frameworks */,
@@ -101,6 +104,7 @@
 		50D44D172C3F92A100CF6A69 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+                A55F00000000000000000004 /* AssppStoreRuntime.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
