@@ -41,9 +41,15 @@ SDKROOT="$simulator_sdk" xcrun --sdk iphonesimulator swiftc -parse-as-library -s
     -Xlinker -export_dynamic -lresolv -lz -framework Security -framework CoreFoundation \
     -o "$app/StoreRuntimeSmoke"
 codesign --force --sign - "$app"
-selection="$(xcrun simctl list --json | python3 -c '
-import json,re,sys
-inventory=json.load(sys.stdin)
+selection="$(python3 - <<'PY'
+import json,re,subprocess
+try:
+    listed=subprocess.run(['xcrun','simctl','list','--json'],capture_output=True,text=True,timeout=30)
+except subprocess.TimeoutExpired:
+    raise SystemExit('simulator-list-timeout')
+if listed.returncode:
+    raise SystemExit('simulator-list-failed')
+inventory=json.loads(listed.stdout)
 types={item["identifier"] for item in inventory["devicetypes"]}
 for device in ["com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max","com.apple.CoreSimulator.SimDeviceType.iPhone-16"]:
     choices=[r for r in inventory["runtimes"] if r.get("isAvailable")
@@ -56,18 +62,70 @@ for device in ["com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro-Max","com.ap
         break
 else:
     raise SystemExit("No compatible iPhone simulator runtime is installed")
-')"
+PY
+)"
 runtime="${selection%%$'\n'*}"
 device_type="${selection#*$'\n'}"
-device="$(xcrun simctl create AssppRuntimeCheck "$device_type" "$runtime")"
-echo "Booting $device_type with $runtime"
-xcrun simctl boot "$device"
-python3 - "$device" <<'PY'
-import subprocess,sys
-subprocess.run(['xcrun','simctl','bootstatus',sys.argv[1],'-b'],check=True,timeout=240)
+device="$(python3 - "$device_type" "$runtime" <<'PY'
+import subprocess,sys,uuid
+try:
+    created=subprocess.run(['xcrun','simctl','create','AssppRuntimeCheck',sys.argv[1],sys.argv[2]],capture_output=True,text=True,timeout=30)
+except subprocess.TimeoutExpired:
+    raise SystemExit('simulator-create-timeout')
+if created.returncode:
+    raise SystemExit('simulator-create-failed')
+print(uuid.UUID(created.stdout.strip()))
 PY
-xcrun simctl install "$device" "$app"
-container="$(xcrun simctl get_app_container "$device" example.asspp.runtime-check data)"
+)"
+echo "Booting $device_type with $runtime"
+container="$(python3 - "$device" "$app" <<'PY'
+import json,pathlib,subprocess,sys
+device,app=sys.argv[1:]
+class ReadinessFailure(Exception):
+    pass
+def command(phase,args,timeout):
+    print('iOS simulator: '+phase, file=sys.stderr, flush=True)
+    try:
+        result=subprocess.run(['xcrun','simctl',*args],capture_output=True,text=True,timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise ReadinessFailure('simulator-'+phase+'-timeout') from None
+    if result.returncode:
+        raise ReadinessFailure('simulator-'+phase+'-failed exit='+str(result.returncode))
+    return result.stdout.strip()
+def state():
+    inventory=json.loads(command('state',['list','devices','--json'],30))
+    matches=[item for group in inventory['devices'].values() for item in group if item.get('udid','').lower()==device.lower()]
+    if len(matches)!=1:
+        raise ReadinessFailure('simulator-owned-device-missing')
+    return matches[0].get('state')
+try:
+    for attempt in range(2):
+        try:
+            if state()=='Shutdown':
+                command('boot',['boot',device],240)
+            # Never use -b: all boots must stay within this owned-device budget.
+            command('bootstatus',['bootstatus',device],240)
+            if state()!='Booted':
+                raise ReadinessFailure('simulator-boot-not-ready')
+            command('install',['install',device,app],300)
+            if state()!='Booted':
+                raise ReadinessFailure('simulator-install-not-ready')
+            container=command('container',['get_app_container',device,'example.asspp.runtime-check','data'],60)
+            if not pathlib.Path(container).is_absolute():
+                raise ReadinessFailure('simulator-container-invalid')
+            print(container)
+            break
+        except ReadinessFailure as error:
+            # One infra recovery only, and only with an observed Shutdown.
+            # No native check, authentication call or other failure is retried.
+            if attempt==0 and state()=='Shutdown':
+                print(str(error)+'; simulator-shutdown-recovery-once',file=sys.stderr,flush=True)
+                continue
+            raise
+except ReadinessFailure as error:
+    raise SystemExit(str(error)) from None
+PY
+)"
 result_file="$container/Documents/runtime-smoke-result.txt"
 rm -f "$result_file"
 echo 'Starting the native Store runtime checks'
@@ -92,14 +150,18 @@ try:
             break
         if status.startswith('failed:'):
             raise SystemExit('iOS native Store runtime check failed: '+status)
-        if not status and process.poll() is not None and time.monotonic()-started > 45:
-            raise SystemExit('iOS check app exited before its scene started')
+        if process.poll() is not None:
+            # Re-read after exit to catch the app's final atomic status write.
+            status = result.read_text() if result.exists() else ''
+            if status == 'passed':
+                break
+            raise SystemExit('iOS native Store runtime app exited before passing')
         time.sleep(0.5)
     else:
         raise SystemExit('iOS native Store runtime check timed out')
 finally:
     if process.poll() is None:
         process.kill()
-        process.wait()
+        process.wait(timeout=10)
     reader.join(timeout=5)
 PY

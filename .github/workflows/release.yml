@@ -85,10 +85,46 @@ jobs:
           key: asspp-spm-xcode27-${{ hashFiles('**/Package.resolved') }}
       - name: Select stable Xcode
         run: bash Resources/Scripts/select.xcode.sh
+      - name: Identify the native build toolchain
+        id: native-toolchain
+        run: |
+          python3 - <<'PYTOOLS'
+          import hashlib,os,subprocess
+          digest=hashlib.sha256()
+          for command in [['xcodebuild','-version'],['xcrun','--sdk','iphoneos','--show-sdk-build-version'],['xcrun','--sdk','iphonesimulator','--show-sdk-build-version'],['go','version'],['cmake','--version']]:
+              output=subprocess.check_output(command)
+              digest.update(len(output).to_bytes(8,'big')); digest.update(output)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              output.write('digest='+digest.hexdigest()+'\n')
+          PYTOOLS
+      - uses: actions/cache/restore@v4
+        id: native-cache
+        with:
+          path: |
+            NativeRuntime
+            StoreRuntime.bundle
+          key: native-ios-libraries-v1-${{ runner.arch }}-${{ steps.native-toolchain.outputs.digest }}-${{ hashFiles('Resources/Scripts/prepare.store.runtime.sh') }}
       - name: Build only device and simulator native libraries
+        if: steps.native-cache.outputs.cache-hit != 'true'
         env:
           ASSPP_NATIVE_TARGETS: ios-arm64 ios-simulator-arm64
         run: bash Resources/Scripts/prepare.store.runtime.sh
+      - name: Verify the native source revision before execution
+        run: |
+          python3 - <<'PY'
+          import pathlib,re
+          script=pathlib.Path('Resources/Scripts/prepare.store.runtime.sh').read_text()
+          expected=re.search(r'^revision=([0-9a-f]{40})$',script,re.M).group(1)
+          assert pathlib.Path('NativeRuntime/source-revision.txt').read_text().strip()==expected, 'Native cache source mismatch'
+          assert pathlib.Path('StoreRuntime.bundle/upstream-revision.txt').read_text().strip()=='b352566155a667d8aaeabaa7ecec4966080f92ab', 'Protocol source mismatch'
+          PY
+      - uses: actions/cache/save@v4
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            NativeRuntime
+            StoreRuntime.bundle
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
       - name: Check native iOS runtime before compiling the application
         env:
           SIMCTL_CHILD_ASS_RUNTIME_LIVE_APPLE: '1'
