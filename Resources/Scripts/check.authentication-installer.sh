@@ -8,6 +8,7 @@ swiftc Asspp/Backend/AppStore/StoreProtocol.swift \
     Asspp/Backend/AppStore/StoreAuthenticationProtocol.swift \
     Asspp/Backend/Installer/InstallationProtocol.swift \
     Asspp/Backend/Installer/LocalCertificate.swift \
+    Asspp/Backend/Installer/OfflineInstallationIdentity.swift \
     Resources/Tests/AuthenticationInstallerChecks.swift -o "$check_dir/checks"
 "$check_dir/checks" "$check_dir"
 # Check the actual bundled chain, hostname, expiry, EKU and leaf/private-key pair.
@@ -25,6 +26,7 @@ if [ "$(uname -s)" = Darwin ]; then
         Asspp/Backend/StoreRuntime/StoreRuntime.swift \
         Asspp/Backend/Installer/InstallationProtocol.swift \
     Asspp/Backend/Installer/LocalCertificate.swift \
+    Asspp/Backend/Installer/OfflineInstallationIdentity.swift \
         Asspp/Interface/Download/ImportIPAView.swift \
         Asspp/Interface/Download/InstallerView.swift \
         Asspp/Backend/UnfairPlay/UnfairPlayRuntime.swift \

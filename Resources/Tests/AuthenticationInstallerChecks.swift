@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Security)
+    import Security
+#endif
 
 #if os(Linux)
     // Linux Foundation has no localization API; macOS CI also compiles the catalog.
@@ -88,47 +91,62 @@ struct AuthenticationInstallerChecks {
     }
 
     private static func checkOfflineChain(directory: URL) throws {
-        func openssl(_ args: [String], succeeds: Bool = true) throws -> Data {
-            let process = Process()
-            let pipe = Pipe()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/openssl")
-            process.arguments = args
-            process.standardOutput = pipe
-            process.standardError = FileHandle.nullDevice
-            try process.run()
-            let bytes = pipe.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            precondition((process.terminationStatus == 0) == succeeds, "unexpected OpenSSL result")
-            return bytes
-        }
-        let key = directory.appendingPathComponent("test-rsa.pem")
-        let leafKey = directory.appendingPathComponent("server-rsa.pem")
-        _ = try openssl(["genrsa", "-out", key.path, "2048"])
-        _ = try openssl(["genrsa", "-out", leafKey.path, "2048"])
-        let keyBytes = try openssl(["rsa", "-in", key.path, "-RSAPublicKey_out", "-outform", "DER"])
-        let leafBytes = try openssl(["rsa", "-in", leafKey.path, "-RSAPublicKey_out", "-outform", "DER"])
-        let body = directory.appendingPathComponent("tbs.der")
-        let authority = "Asspp Test CA"
-        let now = Date()
-        func issue(_ name: String, serial: UInt8, publicKey: Data, host: String?) throws -> Data {
-            try LocalCertificate.issue(
-                name: name, issuer: authority, publicKey: publicKey, serial: Data([serial]),
-                from: now.addingTimeInterval(-300), until: now.addingTimeInterval(86400), host: host,
-            ) { bytes in
-                try bytes.write(to: body)
-                return try openssl(["dgst", "-sha256", "-sign", key.path, body.path])
+        #if canImport(Security)
+            let identity = try OfflineInstallationIdentity.make()
+            let issued = SecCertificateCreateWithData(nil, identity.leaf as CFData)!
+            let authority = SecCertificateCreateWithData(nil, identity.root as CFData)!
+            func trusted(_ host: String) -> Bool {
+                var trust: SecTrust?
+                precondition(SecTrustCreateWithCertificates(issued, SecPolicyCreateSSL(true, host as CFString), &trust) == errSecSuccess)
+                // This synthetic CA is an explicit anchor only in the test process.
+                precondition(SecTrustSetAnchorCertificates(trust!, [authority] as CFArray) == errSecSuccess)
+                SecTrustSetNetworkFetchAllowed(trust!, false)
+                return SecTrustEvaluateWithError(trust!, nil)
             }
-        }
-        let root = directory.appendingPathComponent("test-ca.pem")
-        let leaf = directory.appendingPathComponent("test-leaf.pem")
-        try LocalCertificate.pem(issue(authority, serial: 0x81, publicKey: keyBytes, host: nil), label: "CERTIFICATE").write(to: root)
-        let hostname = "asspp.localhost"
-        try LocalCertificate.pem(issue(hostname, serial: 0x82, publicKey: leafBytes, host: hostname), label: "CERTIFICATE").write(to: leaf)
-        _ = try openssl(["verify", "-purpose", "sslserver", "-verify_hostname", hostname, "-CAfile", root.path, leaf.path])
-        _ = try openssl(["verify", "-purpose", "sslserver", "-verify_hostname", "app.localhost.qaq.wiki", "-CAfile", root.path, leaf.path], succeeds: false)
-        let details = try openssl(["x509", "-in", leaf.path, "-noout", "-text"])
-        precondition(String(decoding: details, as: UTF8.self).contains("DNS:asspp.localhost"))
+            precondition(trusted("asspp.localhost"))
+            precondition(!trusted("app.localhost.qaq.wiki"))
+        #else
+            func openssl(_ args: [String], succeeds: Bool = true) throws -> Data {
+                let process = Process()
+                let pipe = Pipe()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/openssl")
+                process.arguments = args
+                process.standardOutput = pipe
+                process.standardError = FileHandle.nullDevice
+                try process.run()
+                let bytes = pipe.fileHandleForReading.readDataToEndOfFile()
+                process.waitUntilExit()
+                precondition((process.terminationStatus == 0) == succeeds, "unexpected OpenSSL result: \(args[0])")
+                return bytes
+            }
+            let root = directory.appendingPathComponent("test-ca.pem")
+            let leaf = directory.appendingPathComponent("test-leaf.pem")
+            let hostname = "asspp.localhost"
+            let key = directory.appendingPathComponent("test-rsa.pem")
+            let leafKey = directory.appendingPathComponent("server-rsa.pem")
+            _ = try openssl(["genrsa", "-out", key.path, "2048"])
+            _ = try openssl(["genrsa", "-out", leafKey.path, "2048"])
+            let keyBytes = try openssl(["rsa", "-in", key.path, "-RSAPublicKey_out", "-outform", "DER"])
+            let leafBytes = try openssl(["rsa", "-in", leafKey.path, "-RSAPublicKey_out", "-outform", "DER"])
+            let body = directory.appendingPathComponent("tbs.der")
+            let authority = "Asspp Test CA"
+            let now = Date()
+            func issue(_ name: String, serial: UInt8, publicKey: Data, host: String?) throws -> Data {
+                try LocalCertificate.issue(
+                    name: name, issuer: authority, publicKey: publicKey, serial: Data([serial]),
+                    from: now.addingTimeInterval(-300), until: now.addingTimeInterval(86400), host: host,
+                ) { bytes in
+                    try bytes.write(to: body)
+                    return try openssl(["dgst", "-sha256", "-sign", key.path, body.path])
+                }
+            }
+            try LocalCertificate.pem(issue(authority, serial: 0x81, publicKey: keyBytes, host: nil), label: "CERTIFICATE").write(to: root)
+            try LocalCertificate.pem(issue(hostname, serial: 0x82, publicKey: leafBytes, host: hostname), label: "CERTIFICATE").write(to: leaf)
+            _ = try openssl(["verify", "-purpose", "sslserver", "-verify_hostname", hostname, "-CAfile", root.path, leaf.path])
+            _ = try openssl(["verify", "-purpose", "sslserver", "-verify_hostname", "app.localhost.qaq.wiki", "-CAfile", root.path, leaf.path], succeeds: false)
+            let details = try openssl(["x509", "-in", leaf.path, "-noout", "-text"])
+            precondition(String(decoding: details, as: UTF8.self).contains("DNS:asspp.localhost"))
+        #endif
         print("Offline local CA chain, server usage and hostname checks passed.")
     }
-
 }

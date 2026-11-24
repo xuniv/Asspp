@@ -140,15 +140,6 @@ jobs:
             NativeRuntime
             StoreRuntime.bundle
           key: ${{ steps.native-cache.outputs.cache-primary-key }}
-      - name: Check native iOS runtime before compiling the application
-        env:
-          SIMCTL_CHILD_ASS_RUNTIME_LIVE_APPLE: '1'
-        run: |
-          result="$RUNNER_TEMP/native-ios-check-passed"
-          rm -f "$result"
-          ASSPP_NATIVE_CHECK_RESULT="$result" bash Resources/Scripts/check.store.runtime.ios.sh
-          test -f "$result"
-          test "$(cat "$result")" = passed
       - name: Check downloads, authentication and install certificates
         run: |
           bash Resources/Scripts/check.downloads.sh
@@ -160,6 +151,15 @@ jobs:
           python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp.ipa"
           python3 Resources/Scripts/prepare.alt.ipa.py "$RUNNER_TEMP/Asspp.ipa" "$RUNNER_TEMP/Asspp-AltStore.ipa"
           python3 Resources/Scripts/check.release.privacy.py "$RUNNER_TEMP/Asspp-AltStore.ipa"
+      - name: Check native iOS runtime before publishing the application
+        env:
+          SIMCTL_CHILD_ASS_RUNTIME_LIVE_APPLE: '1'
+        run: |
+          result="$RUNNER_TEMP/native-ios-check-passed"
+          rm -f "$result"
+          ASSPP_NATIVE_CHECK_RESULT="$result" bash Resources/Scripts/check.store.runtime.ios.sh
+          test -f "$result"
+          test "$(cat "$result")" = passed
       - uses: actions/upload-artifact@v4
         if: inputs.runtime_only != true
         with:

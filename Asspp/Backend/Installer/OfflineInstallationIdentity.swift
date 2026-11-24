@@ -1,4 +1,4 @@
-#if os(iOS)
+#if canImport(Security)
     import Foundation
     import Security
 
@@ -9,33 +9,36 @@
         let expires: Date
 
         private static let name = "Asspp Offline Installation CA"
-        private static let lock = NSLock()
+        #if os(iOS)
+            private static let lock = NSLock()
 
-        static func load(replace: Bool = false) throws -> Self {
-            try lock.withLock {
-                let manager = FileManager.default
-                var directory = URL.applicationSupportDirectory.appendingPathComponent("AssppInstallation", isDirectory: true)
-                let file = directory.appendingPathComponent("OfflineIdentity.plist")
-                if !replace, manager.fileExists(atPath: file.path) {
-                    let identity = try PropertyListDecoder().decode(Self.self, from: Data(contentsOf: file))
-                    guard identity.expires > Date() else { throw InstallationError.offlineIdentityExpired }
+            static func load(replace: Bool = false) throws -> Self {
+                try lock.withLock {
+                    let manager = FileManager.default
+                    var directory = URL.applicationSupportDirectory.appendingPathComponent("AssppInstallation", isDirectory: true)
+                    let file = directory.appendingPathComponent("OfflineIdentity.plist")
+                    if !replace, manager.fileExists(atPath: file.path) {
+                        let identity = try PropertyListDecoder().decode(Self.self, from: Data(contentsOf: file))
+                        guard identity.expires > Date() else { throw InstallationError.offlineIdentityExpired }
+                        return identity
+                    }
+
+                    let identity = try make()
+                    try manager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [
+                        .posixPermissions: 0o700, .protectionKey: FileProtectionType.completeUntilFirstUserAuthentication,
+                    ])
+                    var values = URLResourceValues()
+                    values.isExcludedFromBackup = true
+                    try directory.setResourceValues(values)
+                    try PropertyListEncoder().encode(identity).write(to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+                    try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
                     return identity
                 }
-
-                let identity = try make()
-                try manager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [
-                    .posixPermissions: 0o700, .protectionKey: FileProtectionType.completeUntilFirstUserAuthentication,
-                ])
-                var values = URLResourceValues()
-                values.isExcludedFromBackup = true
-                try directory.setResourceValues(values)
-                try PropertyListEncoder().encode(identity).write(to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-                try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
-                return identity
             }
-        }
 
-        private static func make() throws -> Self {
+        #endif
+
+        static func make() throws -> Self {
             func key() throws -> SecKey {
                 let attributes: [String: Any] = [kSecAttrKeyType as String: kSecAttrKeyTypeRSA, kSecAttrKeySizeInBits as String: 2048]
                 guard let key = SecKeyCreateRandomKey(attributes as CFDictionary, nil) else {
