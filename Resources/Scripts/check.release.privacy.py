@@ -49,11 +49,11 @@ def check(archive):
                     raise ValueError("unsafe archive path")
                 if path.suffix.lower() in {".mobileprovision", ".provisionprofile", ".p12", ".p8"}:
                     raise ValueError("archive contains provisioning or signing assets")
-                if path.name in {"Developer.xcconfig", "rootCA-key.pem"}:
+                if path.name in {"Developer.xcconfig", "rootCA-key.pem", "OfflineIdentity.plist"}:
                     raise ValueError("archive contains local developer configuration or a CA private key")
                 if path.suffix.lower() in {
                     ".bin", ".snapshot", ".capture", ".sinf", ".supf", ".supp", ".sidb", ".sids"
-                } or any(part in path.parts for part in ("UnfairPlayFixtures", "test-fixtures", "SC_Info")):
+                } or any(part in path.parts for part in ("UnfairPlayFixtures", "test-fixtures", "SC_Info", "ProcessedIPAs")):
                     expected_hash = PUBLIC_SAP_TABLES.get(item.filename)
                     if expected_hash is None or item.is_dir():
                         raise ValueError("archive contains an enrollment model, private license or smoke fixture")

@@ -7,6 +7,10 @@ cd "$download_repo_dir"
 swiftc Asspp/Backend/AppStore/StoreProtocol.swift \
     Asspp/Backend/AppStore/StoreDiagnostics.swift \
     Asspp/Backend/AppStore/StoreDownloadProtocol.swift \
+    Asspp/Backend/Downloader/DownloadVersion.swift \
     Resources/Tests/DownloadProtocolChecks.swift -o "$download_check_dir/download-checks"
 "$download_check_dir/download-checks"
-/usr/bin/python3 Resources/Tests/LocalizationChecks.py Asspp/Backend/AppStore/StoreDownloadProtocol.swift
+if [ "$(uname -s)" = Darwin ]; then
+    /usr/bin/python3 Resources/Tests/LocalizationChecks.py Asspp/Backend/AppStore/StoreDownloadProtocol.swift \
+        Asspp/Backend/Downloader/DownloadUpdates.swift
+fi

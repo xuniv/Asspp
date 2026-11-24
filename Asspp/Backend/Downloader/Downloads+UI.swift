@@ -7,7 +7,6 @@
 
 import ApplePackage
 import Foundation
-import SwiftUI
 
 enum DownloadAction: Hashable {
     case suspend
@@ -59,15 +58,26 @@ extension Downloads {
 }
 
 extension Downloads {
-    func startDownload(for package: AppStore.AppPackage, accountID: String) async throws {
+    @discardableResult
+    func startDownload(
+        for package: AppStore.AppPackage, accountID: String, expectingLatest: Bool = false,
+    ) async throws -> PackageManifest {
         try await AppStore.this.withAccount(id: accountID) { account in
             let downloadOutput = try await StoreDownloadService.download(account: &account.account, package: package)
+            try Task.checkCancellation()
+            if expectingLatest,
+               downloadOutput.bundleShortVersionString.isEmpty ||
+               DownloadVersion.compare(downloadOutput.bundleShortVersionString, package.software.version) == .orderedAscending
+            {
+                throw DownloadUpdateError.latestUnavailable
+            }
             let request = try Downloads.this.add(request: .init(
                 account: account,
                 package: package,
                 downloadOutput: downloadOutput,
             ))
             Downloads.this.resume(request: request)
+            return request
         }
     }
 }

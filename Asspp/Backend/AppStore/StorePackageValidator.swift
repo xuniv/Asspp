@@ -23,6 +23,11 @@ enum StorePackageValidator {
         ), entityType: .iPhone)
     }
 
+    static func marketingVersion(at url: URL) throws -> String? {
+        let version = try readInfo(at: url)["CFBundleShortVersionString"] as? String
+        return version.flatMap { $0.isEmpty ? nil : $0 }
+    }
+
     private static func readInfo(at url: URL) throws -> [String: Any] {
         let archive = try Archive(url: url, accessMode: .read)
         let entries = archive.filter { StoreDownloadProtocol.isMainInfoPlist($0.path) }

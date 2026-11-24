@@ -181,44 +181,37 @@ struct MainView: View {
     }
 #else
     private struct LegacyTabMainView: View {
-        @State var dvm = Downloads.this
+        @State private var downloads = Downloads.this
 
         var body: some View {
             TabView {
-                WelcomeView()
-                    .tabItem { Label("Home", systemImage: "house") }
+                DownloadView()
+                    .tabItem { Label("Downloads", systemImage: "arrow.down.circle") }
+                    .badge(downloads.runningTaskCount)
                 AccountView()
                     .tabItem { Label("Accounts", systemImage: "person") }
-                SearchView()
-                    .tabItem { Label("Search", systemImage: "magnifyingglass") }
-                DownloadView()
-                    .tabItem {
-                        Label("Downloads", systemImage: "arrow.down.circle")
-                    }
-                    .badge(dvm.runningTaskCount) // putting badge inside will not work on iOS versions before 18
-                ImportIPAView()
-                    .tabItem { Label("Import IPA", systemImage: "square.and.arrow.down") }
+                ToolsView()
+                    .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
                 SettingView()
                     .tabItem { Label("Settings", systemImage: "gear") }
+                SearchView()
+                    .tabItem { Label("Search", systemImage: "magnifyingglass") }
             }
         }
     }
 
     @available(iOS 18.0, *)
     struct NewMainView: View {
-        @State var dvm = Downloads.this
+        @State private var downloads = Downloads.this
 
         var body: some View {
             TabView {
-                Tab("Home", systemImage: "house") { WelcomeView() }
-                Tab("Accounts", systemImage: "person") { AccountView() }
-                Tab(role: .search) {
-                    SearchView()
-                }
                 Tab("Downloads", systemImage: "arrow.down.circle") { DownloadView() }
-                    .badge(dvm.runningTaskCount)
-                Tab("Import IPA", systemImage: "square.and.arrow.down") { ImportIPAView() }
+                    .badge(downloads.runningTaskCount)
+                Tab("Accounts", systemImage: "person") { AccountView() }
+                Tab("Tools", systemImage: "wrench.and.screwdriver") { ToolsView() }
                 Tab("Settings", systemImage: "gear") { SettingView() }
+                Tab(role: .search) { SearchView() }
             }
             .neverMinimizeTab()
             .activateSearchWhenSearchTabSelected()

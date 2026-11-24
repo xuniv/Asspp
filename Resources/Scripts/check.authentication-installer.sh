@@ -7,8 +7,9 @@ cd "$check_repo_dir"
 swiftc Asspp/Backend/AppStore/StoreProtocol.swift \
     Asspp/Backend/AppStore/StoreAuthenticationProtocol.swift \
     Asspp/Backend/Installer/InstallationProtocol.swift \
+    Asspp/Backend/Installer/LocalCertificate.swift \
     Resources/Tests/AuthenticationInstallerChecks.swift -o "$check_dir/checks"
-"$check_dir/checks"
+"$check_dir/checks" "$check_dir"
 # Check the actual bundled chain, hostname, expiry, EKU and leaf/private-key pair.
 cert_dir=Certificates/localhost.qaq.wiki
 openssl verify -purpose sslserver -verify_hostname app.localhost.qaq.wiki \
@@ -23,6 +24,7 @@ if [ "$(uname -s)" = Darwin ]; then
         Asspp/Backend/AppStore/StoreAuthenticator.swift \
         Asspp/Backend/StoreRuntime/StoreRuntime.swift \
         Asspp/Backend/Installer/InstallationProtocol.swift \
+    Asspp/Backend/Installer/LocalCertificate.swift \
         Asspp/Interface/Download/ImportIPAView.swift \
         Asspp/Interface/Download/InstallerView.swift \
         Asspp/Backend/UnfairPlay/UnfairPlayRuntime.swift \

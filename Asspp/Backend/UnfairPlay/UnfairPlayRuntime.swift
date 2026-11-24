@@ -13,8 +13,8 @@ enum UnfairPlayOperation: String, Codable, Sendable {
     }
 }
 
-struct UnfairPlayReport: Decodable, Sendable {
-    let outputPath: String?
+struct UnfairPlayReport: Codable, Sendable {
+    var outputPath: String?
     let plaintextVerified: Bool?
     let encryptedImages: Int?
     let decryptedPages: Int?

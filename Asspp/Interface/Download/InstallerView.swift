@@ -26,6 +26,7 @@
             NavigationStack {
                 Form {
                     Section {
+                        Text(installer.host.rawValue).foregroundStyle(.secondary)
                         if checking { ProgressView("Checking certificate trust and local server...") }
                         else { Text(status) }
                         if let error { Text(error).foregroundStyle(.red).textSelection(.enabled) }
@@ -35,7 +36,7 @@
                     Section {
                         Button("Install Certificate") {
                             Task {
-                                do { openURL(try await Installer.certificateURL()) }
+                                do { openURL(try await Installer.certificateURL(for: installer.host)) }
                                 catch { self.error = error.localizedDescription }
                             }
                         }

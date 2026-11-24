@@ -17,6 +17,7 @@ import Vapor
 class Installer: Identifiable, @unchecked Sendable {
     @ObservationIgnored let id: UUID
     @ObservationIgnored let app: Application
+    @ObservationIgnored let host: InstallationHost
     @ObservationIgnored let archive: AppStore.AppPackage
     @ObservationIgnored let port = Int.random(in: 4000 ... 8000)
     @ObservationIgnored private let shutdownLock = NSLock()
@@ -43,7 +44,8 @@ class Installer: Identifiable, @unchecked Sendable {
         // marketing version. This also rejects a mismatched/non-iOS package.
         installationArchive.software.version = metadata.software.version
         self.archive = installationArchive
-        app = try await Self.setupApp(port: port, secured: true)
+        host = InstallationHost.selected
+        app = try await Self.setupApp(port: port, tls: Self.setupTLS(host: host))
         logger.info("Installer app setup completed for ID: \(id)")
 
         app.get("*") { [weak self] req in
@@ -98,58 +100,12 @@ class Installer: Identifiable, @unchecked Sendable {
             }
         }
 
-        try app.server.start()
-        logger.info("installer init at port \(port) for sni \(Self.sni)")
-    }
-
-    /// avoid misleading name, default parm Installer.ca is not used
-    init(certificateAtPath: String) async throws {
-        precondition(Installer.caInstaller == nil)
-
-        let id: UUID = .init()
-        self.id = id
-        archive = .init(software: .init(
-            id: .random(),
-            bundleID: "",
-            name: "",
-            version: "",
-            artistName: "",
-            sellerName: "",
-            description: "",
-            averageUserRating: 0,
-            userRatingCount: 0,
-            artworkUrl: "",
-            screenshotUrls: [],
-            minimumOsVersion: "",
-            releaseDate: "",
-            formattedPrice: "",
-            primaryGenreName: "",
-        ))
-
-        app = try await Self.setupApp(port: port, secured: false)
-
-        let certificate = try InstallationProtocol.certificateDER(pem: Data(contentsOf: URL(fileURLWithPath: certificateAtPath)))
-        let profile = try InstallationProtocol.certificateProfile(certificate: certificate)
-        app.get("Asspp-Local-Installation.mobileconfig") { _ in
-            Response(status: .ok, headers: [
-                "Content-Type": "application/x-apple-aspen-config",
-                "Content-Disposition": "attachment; filename=Asspp-Local-Installation.mobileconfig",
-                "Cache-Control": "no-store",
-            ], body: .init(data: profile))
+        do { try app.server.start() }
+        catch {
+            destroy()
+            throw error
         }
-        app.get("ca.cer") { _ in
-            Response(status: .ok, headers: ["Content-Type": "application/x-x509-ca-cert", "Cache-Control": "no-store"], body: .init(data: certificate))
-        }
-
-        var comps = URLComponents()
-        comps.scheme = "http"
-        comps.host = "127.0.0.1"
-        comps.port = port
-        comps.path = InstallationProtocol.profilePath
-        let url = comps.url!
-        try app.server.start()
-        Installer.caURL = url
-        Installer.caInstaller = self
+        logger.info("installer init at port \(port) for sni \(host.rawValue)")
     }
 
     deinit {

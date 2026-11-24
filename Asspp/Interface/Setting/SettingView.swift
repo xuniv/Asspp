@@ -20,8 +20,6 @@ struct SettingView: View {
     @State private var editingDeviceId = false
     @State private var deviceIdDraft = ""
     @State private var showResetConfirmation = false
-    @State private var certificateError: String?
-    @State private var preparingCertificate = false
 
     var body: some View {
         NavigationStack {
@@ -44,6 +42,9 @@ struct SettingView: View {
         Form {
             Section {
                 Toggle("Demo Mode", isOn: $vm.demoMode)
+                #if os(macOS)
+                    NavigationLink("Processed IPAs") { ProcessedIPAList() }
+                #endif
                 Button("Delete All Downloads", role: .destructive) {
                     Downloads.this.removeAll()
                 }
@@ -116,26 +117,12 @@ struct SettingView: View {
                         Button("Open Settings") {
                             openURL(URL(string: UIApplication.openSettingsURLString)!)
                         }
-                        Button("Install Certificate") {
-                            preparingCertificate = true
-                            Task {
-                                defer { preparingCertificate = false }
-                                do {
-                                    certificateError = nil
-                                    openURL(try await Installer.certificateURL())
-                                } catch { certificateError = error.localizedDescription }
-                            }
-                        }
-                        .disabled(preparingCertificate)
-                        if let certificateError { Text(certificateError).foregroundStyle(.red) }
                     #endif
                 }
             } header: {
                 Text("Device")
             } footer: {
-                #if canImport(UIKit)
-                    Text("Install the Asspp certificate profile in Settings > General > VPN & Device Management, then enable full trust for Asspp Local Installation CA in Settings > General > About > Certificate Trust Settings. Replace any older Asspp certificate profile first.")
-                #else
+                #if os(macOS)
                     Text("Grant local network permission to install apps. Install the SSL certificate through System Keychain.")
                 #endif
             }
@@ -174,6 +161,11 @@ struct SettingView: View {
             Button("Reset", role: .destructive) {
                 try? FileManager.default.removeItem(at: documentsDirectory)
                 try? FileManager.default.removeItem(at: temporaryDirectory)
+                try? FileManager.default.removeItem(at: URL.applicationSupportDirectory.appendingPathComponent("Asspp"))
+                #if os(iOS)
+                    UserDefaults.standard.removeObject(forKey: InstallationHost.preferenceKey)
+                    try? FileManager.default.removeItem(at: URL.applicationSupportDirectory.appendingPathComponent("AssppInstallation"))
+                #endif
                 #if canImport(UIKit)
                     UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
                 #endif

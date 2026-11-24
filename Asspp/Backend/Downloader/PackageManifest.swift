@@ -7,6 +7,7 @@
 
 import ApplePackage
 import Foundation
+import Observation
 
 private let packagesDir = {
     let ret = documentsDirectory.appendingPathComponent("Packages")
@@ -25,6 +26,7 @@ class PackageManifest: Identifiable, Codable, Hashable, Equatable {
     @ObservationIgnored private(set) var signatures: [ApplePackage.Sinf]
     @ObservationIgnored private(set) var iTunesMetadata: Data
 
+    private(set) var downloadedVersion: String?
     @ObservationIgnored private(set) var creation: Date
 
     var state: PackageState = .init()
@@ -41,13 +43,44 @@ class PackageManifest: Identifiable, Codable, Hashable, Equatable {
         state.status == .completed
     }
 
+    var version: String { downloadedVersion ?? package.software.version }
+
+    var displayPackage: AppStore.AppPackage {
+        var value = package
+        value.software.version = version
+        return value
+    }
+
+    var storefront: String? {
+        let store = account.account.store.split(separator: "-").first.map(String.init) ?? ""
+        return ApplePackage.Configuration.countryCode(for: store)?.uppercased()
+    }
+
+    var fileSize: Int64? {
+        guard completed else { return nil }
+        return (try? targetLocation.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init)
+    }
+
+    @MainActor
+    func resolveDownloadedVersion() async {
+        guard completed, downloadedVersion == nil else { return }
+        let file = targetLocation
+        let actual = await Task.detached {
+            try? StorePackageValidator.marketingVersion(at: file)
+        }.value
+        if let actual, downloadedVersion == nil {
+            downloadedVersion = actual
+        }
+    }
+
     func waitForCompletion(timeout: TimeInterval? = nil) async {
         let start = Date().timeIntervalSince1970
         while true {
             if let timeout, Date().timeIntervalSince1970 - start > timeout {
                 return
             }
-            try? await Task.sleep(nanoseconds: UInt64(5e8))
+            do { try await Task.sleep(for: .milliseconds(500)) }
+            catch { return }
             // .paused is terminal for waiters: a user-paused download will not
             // progress on its own, so the update flow must not spin forever.
             if [.failed, .completed, .paused].contains(state.status) {
@@ -69,6 +102,7 @@ class PackageManifest: Identifiable, Codable, Hashable, Equatable {
         self.url = url
         signatures = downloadOutput.sinfs
         iTunesMetadata = downloadOutput.iTunesMetadata
+        downloadedVersion = downloadOutput.bundleShortVersionString.isEmpty ? nil : downloadOutput.bundleShortVersionString
         creation = .init()
     }
 
@@ -80,6 +114,7 @@ class PackageManifest: Identifiable, Codable, Hashable, Equatable {
         url = try container.decode(URL.self, forKey: .url)
         signatures = try container.decode([ApplePackage.Sinf].self, forKey: .signatures)
         iTunesMetadata = try container.decodeIfPresent(Data.self, forKey: .iTunesMetadata) ?? Data()
+        downloadedVersion = try container.decodeIfPresent(String.self, forKey: .downloadedVersion)
         creation = try container.decode(Date.self, forKey: .creation)
         state = try container.decode(PackageState.self, forKey: .runtime)
     }
@@ -92,12 +127,13 @@ class PackageManifest: Identifiable, Codable, Hashable, Equatable {
         try container.encode(url, forKey: .url)
         try container.encode(signatures, forKey: .signatures)
         try container.encode(iTunesMetadata, forKey: .iTunesMetadata)
+        try container.encodeIfPresent(downloadedVersion, forKey: .downloadedVersion)
         try container.encode(creation, forKey: .creation)
         try container.encode(state, forKey: .runtime)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, account, package, url, signatures, iTunesMetadata, creation, runtime
+        case id, account, package, url, signatures, iTunesMetadata, creation, runtime, downloadedVersion
     }
 
     /// Identity is the immutable UUID; hashing mutable fields like `state` would

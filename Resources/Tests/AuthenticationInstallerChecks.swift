@@ -45,12 +45,24 @@ struct AuthenticationInstallerChecks {
         precondition(link.port == nil && (link.host ?? "").isEmpty)
         let linkQuery = URLComponents(url: link, resolvingAgainstBaseURL: false)!.queryItems!
         precondition(linkQuery.first { $0.name == "url" }!.value == manifest.absoluteString && manifest.port == 5678)
+        let offline = InstallationProtocol.endpoint(port: 5678, path: "/synthetic.plist", host: .offline)
+        precondition(offline.host == "asspp.localhost" && offline.port == 5678 && offline.scheme == "https")
         let root = try InstallationProtocol.certificateDER(pem: Data(contentsOf: URL(fileURLWithPath: "Certificates/localhost.qaq.wiki/rootCA.pem")))
         let profile = try InstallationProtocol.certificateProfile(certificate: root)
         let parsed = try PropertyListSerialization.propertyList(from: profile, format: nil) as! [String: Any]
         precondition(parsed["PayloadType"] as? String == "Configuration")
         let payload = (parsed["PayloadContent"] as! [[String: Any]])[0]
         precondition(payload["PayloadType"] as? String == "com.apple.security.root" && payload["PayloadContent"] as? Data == root)
+        let offlineProfile = try InstallationProtocol.certificateProfile(certificate: root, host: .offline)
+        let offlinePlist = try PropertyListSerialization.propertyList(from: offlineProfile, format: nil) as! [String: Any]
+        precondition(offlinePlist["PayloadIdentifier"] as? String == "wiki.qaq.Asspp.offline-installation")
+        precondition(offlinePlist["PayloadIdentifier"] as? String != parsed["PayloadIdentifier"] as? String)
+        let offlinePayload = (offlinePlist["PayloadContent"] as! [[String: Any]])[0]
+        precondition(offlinePayload["PayloadContent"] as? Data == root)
+        precondition(!String(data: offlineProfile, encoding: .utf8)!.contains("PRIVATE KEY"))
+        if CommandLine.arguments.count == 2 {
+            try checkOfflineChain(directory: URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true))
+        }
         precondition(!String(data: profile, encoding: .utf8)!.contains("PRIVATE KEY"))
         do { _ = try InstallationProtocol.certificateDER(pem: Data("invalid".utf8)); fatalError("Accepted invalid certificate data") }
         catch InstallationError.certificateUnavailable {}
@@ -74,4 +86,49 @@ struct AuthenticationInstallerChecks {
         catch InstallationError.invalidIPA {}
         print("Authentication endpoint, retry, credential-error, install URL, and CA profile checks passed.")
     }
+
+    private static func checkOfflineChain(directory: URL) throws {
+        func openssl(_ args: [String], succeeds: Bool = true) throws -> Data {
+            let process = Process()
+            let pipe = Pipe()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/openssl")
+            process.arguments = args
+            process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
+            try process.run()
+            let bytes = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            precondition((process.terminationStatus == 0) == succeeds, "unexpected OpenSSL result")
+            return bytes
+        }
+        let key = directory.appendingPathComponent("test-rsa.pem")
+        let leafKey = directory.appendingPathComponent("server-rsa.pem")
+        _ = try openssl(["genrsa", "-out", key.path, "2048"])
+        _ = try openssl(["genrsa", "-out", leafKey.path, "2048"])
+        let keyBytes = try openssl(["rsa", "-in", key.path, "-RSAPublicKey_out", "-outform", "DER"])
+        let leafBytes = try openssl(["rsa", "-in", leafKey.path, "-RSAPublicKey_out", "-outform", "DER"])
+        let body = directory.appendingPathComponent("tbs.der")
+        let authority = "Asspp Test CA"
+        let now = Date()
+        func issue(_ name: String, serial: UInt8, publicKey: Data, host: String?) throws -> Data {
+            try LocalCertificate.issue(
+                name: name, issuer: authority, publicKey: publicKey, serial: Data([serial]),
+                from: now.addingTimeInterval(-300), until: now.addingTimeInterval(86400), host: host,
+            ) { bytes in
+                try bytes.write(to: body)
+                return try openssl(["dgst", "-sha256", "-sign", key.path, body.path])
+            }
+        }
+        let root = directory.appendingPathComponent("test-ca.pem")
+        let leaf = directory.appendingPathComponent("test-leaf.pem")
+        try LocalCertificate.pem(issue(authority, serial: 0x81, publicKey: keyBytes, host: nil), label: "CERTIFICATE").write(to: root)
+        let hostname = "asspp.localhost"
+        try LocalCertificate.pem(issue(hostname, serial: 0x82, publicKey: leafBytes, host: hostname), label: "CERTIFICATE").write(to: leaf)
+        _ = try openssl(["verify", "-purpose", "sslserver", "-verify_hostname", hostname, "-CAfile", root.path, leaf.path])
+        _ = try openssl(["verify", "-purpose", "sslserver", "-verify_hostname", "app.localhost.qaq.wiki", "-CAfile", root.path, leaf.path], succeeds: false)
+        let details = try openssl(["x509", "-in", leaf.path, "-noout", "-text"])
+        precondition(String(decoding: details, as: UTF8.self).contains("DNS:asspp.localhost"))
+        print("Offline local CA chain, server usage and hostname checks passed.")
+    }
+
 }

@@ -6,24 +6,14 @@
 //
 
 import Foundation
+import NIOSSL
 import Vapor
 
 extension Installer {
-    private static let env: Environment = {
-        var env = try! Environment.detect()
-        try! LoggingSystem.bootstrap(from: &env)
-        return env
-    }()
-
-    static func setupApp(port: Int, secured: Bool) async throws -> Application {
+    static func setupApp(port: Int, tls: TLSConfiguration? = nil) async throws -> Application {
         let app = try await Application.make()
-
         app.threadPool = .init(numberOfThreads: 1)
-
-        if secured {
-            app.http.server.configuration.tlsConfiguration = try Self.setupTLS()
-        }
-        app.http.server.configuration.hostname = Self.sni
+        app.http.server.configuration.tlsConfiguration = tls
         app.http.server.configuration.tcpNoDelay = true
 
         app.http.server.configuration.address = .hostname("127.0.0.1", port: port)

@@ -18,7 +18,7 @@ struct PackageView: View {
     @State var pkg: PackageManifest
 
     var archive: AppStore.AppPackage {
-        pkg.package
+        pkg.displayPackage
     }
 
     var url: URL {

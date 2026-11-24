@@ -72,12 +72,6 @@ Task { @MainActor in
     _ = UnfairPlayArtifactStore.shared
 }
 
-#if os(iOS)
-    Task { @MainActor in
-        do { _ = try await Installer.certificateURL() }
-        catch { logger.error("Certificate server startup failed: \(StoreDiagnostics.errorSummary(error))") }
-    }
-#endif
 
 App.main()
 

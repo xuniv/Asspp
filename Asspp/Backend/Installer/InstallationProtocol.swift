@@ -1,13 +1,26 @@
 import Foundation
 
+enum InstallationHost: String, CaseIterable, Sendable {
+    case legacy = "app.localhost.qaq.wiki"
+    case offline = "asspp.localhost"
+
+    static let preferenceKey = "InstallationHost"
+
+    static var selected: Self {
+        UserDefaults.standard.string(forKey: preferenceKey).flatMap(Self.init(rawValue:)) ?? .legacy
+    }
+}
+
 enum InstallationError: LocalizedError {
-    case certificateUnavailable, certificateTrustRequired, unreachable, linkRejected, invalidIPA
+    case certificateUnavailable, certificateTrustRequired, unreachable, offlineUnreachable, offlineIdentityExpired, linkRejected, invalidIPA
 
     var errorDescription: String? {
         switch self {
         case .certificateUnavailable: String(localized: "The local installation certificate could not be loaded.")
         case .certificateTrustRequired: String(localized: "Install the Asspp certificate profile in Settings > General > VPN & Device Management, then enable full trust for Asspp Local Installation CA in Settings > General > About > Certificate Trust Settings. Replace any older Asspp certificate profile first.")
         case .unreachable: String(localized: "The local installation server could not be reached. Allow local network access for Asspp and check that app.localhost.qaq.wiki resolves to 127.0.0.1 in your DNS or VPN settings.")
+        case .offlineUnreachable: String(localized: "Asspp could not reach asspp.localhost. Check local network access or select the compatible installation domain in Tools.")
+        case .offlineIdentityExpired: String(localized: "The offline installation certificate has expired. Replace it and trust the new profile in Tools.")
         case .linkRejected: String(localized: "iOS could not open the installation link. Retry after checking certificate trust and local network permission.")
         case .invalidIPA: String(localized: "Choose an iOS IPA containing one main app with a valid bundle identifier and build version.")
         }
@@ -15,7 +28,7 @@ enum InstallationError: LocalizedError {
 }
 
 enum InstallationProtocol {
-    static let hostname = "app.localhost.qaq.wiki"
+    static let hostname = InstallationHost.legacy.rawValue
     static let profilePath = "/Asspp-Local-Installation.mobileconfig"
 
     struct ImportedMetadata {
@@ -38,10 +51,10 @@ enum InstallationProtocol {
         return ImportedMetadata(bundleID: bundleID, name: text("CFBundleDisplayName") ?? text("CFBundleName") ?? bundleID, build: build)
     }
 
-    static func endpoint(port: Int, path: String) -> URL {
+    static func endpoint(port: Int, path: String, host: InstallationHost = .legacy) -> URL {
         var parts = URLComponents()
         parts.scheme = "https"
-        parts.host = hostname
+        parts.host = host.rawValue
         parts.port = port
         parts.path = path
         return parts.url!
@@ -65,19 +78,22 @@ enum InstallationProtocol {
         return data
     }
 
-    static func certificateProfile(certificate: Data) throws -> Data {
-        try PropertyListSerialization.data(fromPropertyList: [
+    static func certificateProfile(certificate: Data, host: InstallationHost = .legacy) throws -> Data {
+        let offline = host == .offline
+        let identifier = offline ? "wiki.qaq.Asspp.offline-installation" : "wiki.qaq.Asspp.local-installation"
+        let name = offline ? "Asspp Offline Installation CA" : "Asspp Local Installation CA"
+        return try PropertyListSerialization.data(fromPropertyList: [
             "PayloadType": "Configuration", "PayloadVersion": 1,
-            "PayloadIdentifier": "wiki.qaq.Asspp.local-installation",
-            "PayloadUUID": "442D39AA-42E7-4449-971E-7F59845138B3",
-            "PayloadDisplayName": "Asspp Local Installation",
+            "PayloadIdentifier": identifier,
+            "PayloadUUID": offline ? UUID().uuidString : "442D39AA-42E7-4449-971E-7F59845138B3",
+            "PayloadDisplayName": name,
             "PayloadDescription": "Trust the local Asspp installation server. Enable full trust in Certificate Trust Settings after installing this profile.",
             "PayloadOrganization": "Asspp", "PayloadRemovalDisallowed": false,
             "PayloadContent": [[
                 "PayloadType": "com.apple.security.root", "PayloadVersion": 1,
-                "PayloadIdentifier": "wiki.qaq.Asspp.local-installation.root",
-                "PayloadUUID": "3A6C0D63-F6D7-44FB-AD75-04CE18627470",
-                "PayloadDisplayName": "Asspp Local Installation CA",
+                "PayloadIdentifier": identifier + ".root",
+                "PayloadUUID": offline ? UUID().uuidString : "3A6C0D63-F6D7-44FB-AD75-04CE18627470",
+                "PayloadDisplayName": name,
                 "PayloadCertificateFileName": "Asspp-Local-Installation-CA.cer",
                 "PayloadContent": certificate,
             ]],

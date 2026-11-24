@@ -10,21 +10,11 @@ import Foundation
 
 extension Installer {
     var plistEndpoint: URL {
-        var comps = URLComponents()
-        comps.scheme = "https"
-        comps.host = Self.sni
-        comps.path = "/\(id).plist"
-        comps.port = port
-        return comps.url!
+        InstallationProtocol.endpoint(port: port, path: "/\(id).plist", host: host)
     }
 
     var payloadEndpoint: URL {
-        var comps = URLComponents()
-        comps.scheme = "https"
-        comps.host = Self.sni
-        comps.path = "/\(id).ipa"
-        comps.port = port
-        return comps.url!
+        InstallationProtocol.endpoint(port: port, path: "/\(id).ipa", host: host)
     }
 
     var iTunesLink: URL {
@@ -32,12 +22,7 @@ extension Installer {
     }
 
     var displayImageSmallEndpoint: URL {
-        var comps = URLComponents()
-        comps.scheme = "https"
-        comps.host = Self.sni
-        comps.path = "/app57x57.png"
-        comps.port = port
-        return comps.url!
+        InstallationProtocol.endpoint(port: port, path: "/app57x57.png", host: host)
     }
 
     var displayImageSmallData: Data {
@@ -45,12 +30,7 @@ extension Installer {
     }
 
     var displayImageLargeEndpoint: URL {
-        var comps = URLComponents()
-        comps.scheme = "https"
-        comps.host = Self.sni
-        comps.path = "/app512x512.png"
-        comps.port = port
-        return comps.url!
+        InstallationProtocol.endpoint(port: port, path: "/app512x512.png", host: host)
     }
 
     var displayImageLargeData: Data {

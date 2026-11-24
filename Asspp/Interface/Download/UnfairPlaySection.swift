@@ -63,10 +63,9 @@ struct UnfairPlaySection: View {
         } header: {
             Text("UnfairPlay")
         } footer: {
-            Text("Import private .bin models recovered on your Mac. Matching models are selected automatically for each IPA. Operations preserve the original and create separate temporary copies.")
+            Text("Import private .bin models recovered on your Mac. Matching models are selected automatically for each IPA. Operations preserve the original and save separate copies in Tools.")
             Text("Encrypted macOS conversion requires a matching V2 model. Only selected V2 models are used for this operation.")
         }
-        .onAppear { artifacts.cleanup() }
     }
 
     private func perform(_ operation: UnfairPlayOperation, stripped: Bool = false) {

@@ -1,8 +1,18 @@
 import Foundation
 
+#if os(Linux)
+    extension String { init(localized value: String) { self = value } }
+#endif
+
 @main
 struct DownloadProtocolChecks {
     static func main() async throws {
+        for (older, newer) in [("1.9", "1.10"), ("1.2.2.99", "1.2.2.113"), ("2.0", "10.0"), ("0.9.7", "0.10"), ("1.0.1", "1.0.1000000000000000000000000")] {
+            precondition(DownloadVersion.compare(older, newer) == .orderedAscending)
+            precondition(DownloadVersion.compare(newer, older) == .orderedDescending)
+        }
+        precondition(DownloadVersion.compare("01.0.0", "1") == .orderedSame)
+
         let empty: [String: Any] = ["songList": [], "status": 0, "jingleDocType": "purchaseSuccess"]
         let success: [String: Any] = ["songList": [["metadata": ["softwareVersionBundleId": "example.app"]]]]
         var requests: [(StoreDownloadProtocol.Endpoint, String?)] = []
